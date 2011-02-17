@@ -102,3 +102,10 @@ canvas {
 	float: right;
 	margin-right: -12px;
 }
+
+.selectionbox {
+	position: absolute;
+	border: 1px solid #7F7F7F;
+	background: rgba(255, 255, 255, 0.1);
+	display: none;
+}

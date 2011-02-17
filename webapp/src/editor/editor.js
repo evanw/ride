@@ -1,6 +1,9 @@
 function Editor() {
 	this.doc = new Document();
-	this.tool = new DraggingTool(this.doc);
+	this.tools = [
+		new DraggingTool(this.doc),
+		new SelectionTool(this.doc)
+	];
 }
 
 Editor.prototype.drawLinks = function(c) {
@@ -47,18 +50,30 @@ Editor.prototype.getMinSize = function() {
 };
 
 Editor.prototype.mousePressed = function(x, y) {
-	this.tool.mousePressed(x, y);
-	this.updateRects();
+	this.tool = null;
+	for (var i = 0; i < this.tools.length; i++) {
+		var tool = this.tools[i];
+		if (tool.mousePressed(x, y)) {
+			this.tool = tool;
+			this.updateRects();
+			break;
+		}
+	}
 };
 
 Editor.prototype.mouseMoved = function(x, y) {
-	this.tool.mouseMoved(x, y);
-	this.updateRects();
+	if (this.tool != null) {
+		this.tool.mouseDragged(x, y);
+		this.updateRects();
+	}
 };
 
 Editor.prototype.mouseReleased = function(x, y) {
-	this.tool.mouseReleased(x, y);
-	this.updateRects();
+	if (this.tool != null) {
+		this.tool.mouseReleased(x, y);
+		this.tool = null;
+		this.updateRects();
+	}
 };
 
 Editor.prototype.updateRects = function() {
