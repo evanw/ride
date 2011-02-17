@@ -2,4 +2,4 @@
 *.pyc
 *~
 *.swp
-webapp/www/script.js
+generated.js

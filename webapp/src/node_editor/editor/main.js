@@ -33,7 +33,7 @@ $(window).load(function() {
 
 	$(document).mousedown(function(e) {
 		editor.mousePressed(e.pageX, e.pageY);
-		e.preventDefault();
+		// e.preventDefault();
 		draw();
 	});
 
