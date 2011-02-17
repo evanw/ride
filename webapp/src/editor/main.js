@@ -17,24 +17,17 @@ $(window).load(function() {
 	editor = new Editor();
 
 	var nodes = editor.doc.nodes;
-	nodes.push(new Node('foo'));
-	nodes.push(new Node('bar_akjshdjkhajksdjkahsjdkhajkshjhajkshdjkahsd'));
-	nodes.push(new Node('baz'));
-	nodes[0].outputs.push(new Output('to_bar'));
-	nodes[0].outputs.push(new Output('asd'));
-	nodes[0].outputs.push(new Output('sdfssd'));
-	nodes[0].outputs.push(new Output('eujhe'));
-	nodes[1].inputs.push(new Input('from_foo'));
-	nodes[1].outputs.push(new Output('to_baz'));
-	nodes[2].outputs.push(new Output('blahsdl_sakdjhfk_sdkfja_ksdf'));
-	nodes[2].inputs.push(new Input('from_bar'));
-	nodes[0].outputs[0].nodes.push(nodes[1]);
-	nodes[1].inputs[0].nodes.push(nodes[0]);
-	nodes[1].outputs[0].nodes.push(nodes[2]);
-	nodes[2].inputs[0].nodes.push(nodes[1]);
-	nodes[0].generateHTML();
-	nodes[1].generateHTML();
-	nodes[2].generateHTML();
+	nodes.push(new Node('gscam', [], ['image']));
+	nodes.push(new Node('cmvision', ['image'], ['blobs']));
+	nodes.push(new Node('ar_recog', ['image'], ['tags']));
+	nodes.push(new Node('merge_blobs', ['blob_list'], ['blob_list']));
+	nodes.push(new Node('filter_blobs', ['blob_list'], ['orange_over_green', 'green_over_orange', 'orange', 'green', 'yellow', 'pink']));
+	nodes.push(new Node('seek_objects', ['blob_list'], ['twist']));
+	nodes.push(new Node('avoid_objects', ['blob_list'], ['twist']));
+	nodes.push(new Node('irobot_create_2_1', ['twist'], []));
+	for (var i = 0; i < nodes.length; i++) {
+		nodes[i].generateHTML();
+	}
 
 	draw();
 

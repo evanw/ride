@@ -1,15 +1,17 @@
 function Output(name) {
 	this.name = name;
-	this.nodes = [];
+	this.parent = null;
+	this.inputs = [];
 	this.element = null;
 	this.rect = null;
 }
 
-Output.prototype.connectsToNode = function(node) {
-	for (var i = 0; i < this.nodes.length; i++) {
-		if (this.nodes[i] == node) {
-			return true;
-		}
-	}
-	return false;
+Output.prototype.connectTo = function(input) {
+	addOnce(this.inputs, input);
+	addOnce(input.outputs, this);
+};
+
+Output.prototype.disconnectFrom = function(input) {
+	removeAll(this.inputs, input);
+	removeAll(input.outputs, this);
 };

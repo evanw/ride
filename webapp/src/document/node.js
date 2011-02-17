@@ -1,6 +1,6 @@
 var nextNodeID = 0;
 
-function Node(title) {
+function Node(title, inputNames, outputNames) {
 	this.id = nextNodeID++;
 	this.title = title;
 	this.inputs = [];
@@ -8,24 +8,23 @@ function Node(title) {
 	this.rect = null;
 	this.element = null;
 	this.createElement();
+
+	for (var i = 0; i < inputNames.length; i++) {
+		this.inputs.push(new Input(inputNames[i]));
+	}
+	for (var i = 0; i < outputNames.length; i++) {
+		this.outputs.push(new Output(outputNames[i]));
+	}
 }
 
-Node.prototype.getInputFromNode = function(node) {
-	for (var i = 0; i < this.inputs.length; i++) {
-		if (this.inputs[i].connectsToNode(node)) {
-			return this.inputs[i];
-		}
-	}
-	return null;
+Node.prototype.addInput = function(input) {
+	this.inputs.push(input);
+	input.parent = this;
 };
 
-Node.prototype.getOutputToNode = function(node) {
-	for (var i = 0; i < this.outputs.length; i++) {
-		if (this.outputs[i].connectsToNode(node)) {
-			return this.outputs[i];
-		}
-	}
-	return null;
+Node.prototype.addOutput = function(output) {
+	this.outputs.push(output);
+	output.parent = this;
 };
 
 Node.prototype.createElement = function() {

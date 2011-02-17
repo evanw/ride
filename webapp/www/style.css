@@ -91,6 +91,8 @@ canvas {
 	height: 6px;
 	background: white;
 	border-radius: 3px;
+	-moz-border-radius: 3px;
+	-webkit-border-radius: 3px;
 }
 
 .node .input .bullet {
@@ -107,5 +109,10 @@ canvas {
 	position: absolute;
 	border: 1px solid #7F7F7F;
 	background: rgba(255, 255, 255, 0.1);
+	display: none;
+}
+
+.nodelink {
+	position: absolute;
 	display: none;
 }

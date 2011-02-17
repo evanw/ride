@@ -5,6 +5,8 @@ function Rect(left, top, width, height) {
 	this.height = height;
 	this.right = left + width;
 	this.bottom = top + height;
+	this.centerX = left + width / 2;
+	this.centerY = top + height / 2;
 }
 
 Rect.getFromElement = function(element, noMargin) {

@@ -38,8 +38,8 @@ DraggingTool.prototype.mousePressed = function(x, y) {
 		this.minX = Math.min(this.minX, rect.left);
 		this.minY = Math.min(this.minY, rect.top);
 	}
-	this.minX = 10 + x - this.minX;
-	this.minY = 10 + y - this.minY;
+	this.minX = 30 + x - this.minX;
+	this.minY = 30 + y - this.minY;
 
 	return true;
 };

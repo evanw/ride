@@ -1,35 +1,26 @@
 function Editor() {
 	this.doc = new Document();
 	this.tools = [
+		// Listed in order of precedence
+		new NodeLinkTool(this.doc),
 		new DraggingTool(this.doc),
 		new SelectionTool(this.doc)
 	];
 }
 
 Editor.prototype.drawLinks = function(c) {
-	c.strokeStyle = 'yellow';
-	c.lineWidth = 2;
-	c.shadowBlur = 3;
-	c.shadowColor = 'black';
-	c.shadowOffsetY = 1;
-
-	c.beginPath();
 	for (var i = 0; i < this.doc.nodes.length; i++) {
 		var node = this.doc.nodes[i];
 		for (var j = 0; j < node.outputs.length; j++) {
 			var output = node.outputs[j];
-			for (var k = 0; k < output.nodes.length; k++) {
-				var input = output.nodes[k].getInputFromNode(node);
-				var rectIn = input.rect;
-				var rectOut = output.rect;
-				var ax = rectOut.right - 3, ay = rectOut.top + rectOut.height / 2;
-				var bx = rectIn.left + 3, by = rectIn.top + rectIn.height / 2;
-				c.moveTo(ax, ay);
-				c.bezierCurveTo(ax + 100, ay, bx - 100, by, bx, by);
+			for (var k = 0; k < output.inputs.length; k++) {
+				var input = output.inputs[k];
+				var ax = output.rect.centerX, ay = output.rect.centerY;
+				var bx = input.rect.left - 8, by = input.rect.centerY;
+				drawLink(c, ax, ay, bx, by);
 			}
 		}
 	}
-	c.stroke();
 };
 
 Editor.prototype.draw = function(c) {
