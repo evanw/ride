@@ -31,9 +31,14 @@ $(window).load(function() {
 
 	draw();
 
+	// need to preventDefault() here instead of mousedown because we
+	// still want mousedown to move keyboard focus into the iframe
+	$(document).bind('selectstart', function(e) {
+		e.preventDefault();
+	});
+
 	$(document).mousedown(function(e) {
 		editor.mousePressed(e.pageX, e.pageY);
-		// e.preventDefault();
 		draw();
 	});
 

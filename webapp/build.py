@@ -35,12 +35,14 @@ class Builder(Thread):
 
     def run(self):
         self.build()
-        if 'release' in sys.argv:
+        if 'release' not in sys.argv:
             self.monitor()
 
 if __name__ == '__main__':
-    Builder('src/main_page/', 'www/generated.js').start()
-    Builder('src/node_editor/', 'www/node_editor/generated.js').start()
+    Builder('src/main/', 'www/static/main/generated.js').start()
+    Builder('src/editor/', 'www/static/editor/generated.js').start()
+    Builder('src/project/', 'www/static/project/generated.js').start()
 
-    while True:
-        time.sleep(1)
+    if 'release' not in sys.argv:
+        while True:
+            time.sleep(1)

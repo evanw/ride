@@ -13,7 +13,7 @@ td {
 body {
 	margin: 0;
 	font: 14px Arial;
-	background: url(bg.png);
+	background: url(/static/images/grid.png);
 }
 
 canvas {

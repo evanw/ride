@@ -1,0 +1,119 @@
+.mac-toolbar {
+	cursor: default;
+	font: 12px 'Lucida Grande', Helvetica, Arial, sans-serif;
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	background: #A7A7A7;
+	background: -moz-linear-gradient(#C7C7C7, #979797);
+	background: -webkit-gradient(linear, left top, left bottom, from(#C7C7C7), to(#979797));
+	border-bottom: 1px solid #3F3F3F;
+	padding: 5px 5px 0 5px;
+	-moz-user-select: -moz-none;
+	-webkit-user-select: none;
+}
+
+.mac-toolbar .section {
+	float: left;
+	height: 50px;
+	text-align: center;
+	padding: 0 8px;
+}
+
+.mac-toolbar .section.disabled .label {
+	color: #5F5F5F;
+}
+
+.mac-toolbar .section.disabled input, .mac-toolbar .section.disabled canvas, .mac-toolbar .section.disabled .segment {
+	opacity: 0.5;
+}
+
+.mac-toolbar .label {
+	text-shadow: 0 1px 0 #BFBFBF;
+	text-align: center;
+	font-size: 11px;
+}
+
+.mac-toolbar .button.hovered.pressed .label {
+	text-shadow: none;
+}
+
+.mac-toolbar .button canvas {
+	width: 32px;
+	height: 32px;
+	margin: 0 auto;
+	display: block;
+}
+
+.mac-toolbar .segment {
+	color: black;
+	text-decoration: none;
+	border: 1px solid #535353;
+	display: inline-block;
+	line-height: 20px;
+	padding: 0 10px;
+	background: #EFEFEF;
+	background: -moz-linear-gradient(white, #B7B7B7);
+	background: -webkit-gradient(linear, left top, left bottom, from(white), to(#B7B7B7));
+	box-shadow: 0 1px 0 #BFBFBF;
+	-o-box-shadow: 0 1px 0 #BFBFBF;
+	-moz-box-shadow: 0 1px 0 #BFBFBF;
+	-webkit-box-shadow: 0 1px 0 #BFBFBF;
+	text-shadow: 0 1px 0 #E7E7E7;
+	margin: 5px -1px 5px 0;
+}
+
+.mac-toolbar .segment.first {
+	border-top-left-radius: 5px;
+	border-bottom-left-radius: 5px;
+	-moz-border-radius-topleft: 5px;
+	-moz-border-radius-bottomleft: 5px;
+	-webkit-border-top-left-radius: 5px;
+	-webkit-border-bottom-left-radius: 5px;
+}
+
+.mac-toolbar .segment.last {
+	border-top-right-radius: 5px;
+	border-bottom-right-radius: 5px;
+	-moz-border-radius-topright: 5px;
+	-moz-border-radius-bottomright: 5px;
+	-webkit-border-top-right-radius: 5px;
+	-webkit-border-bottom-right-radius: 5px;
+}
+
+.mac-toolbar .segment.selected {
+	z-index: 2;
+	color: white;
+	position: relative;
+	border-color: #1F1F1F;
+	background: #7F7F7F;
+	text-shadow: 0 1px 0 black;
+	box-shadow: inset 0 2px 4px #1F1F1F, 0 1px 0 #BFBFBF;
+	-o-box-shadow: inset 0 2px 4px #1F1F1F, 0 1px 0 #BFBFBF;
+	-moz-box-shadow: inset 0 2px 4px #1F1F1F, 0 1px 0 #BFBFBF;
+	-webkit-box-shadow: inset 0 2px 4px #1F1F1F, 0 1px 0 #BFBFBF;
+}
+
+.mac-toolbar .search input {
+	margin: 6px 0;
+	height: 19px;
+	width: 180px;
+	padding: 0 10px;
+	background: white;
+	border: none;
+	border-radius: 10px;
+	-moz-border-radius: 10px;
+	-webkit-border-radius: 10px;
+	box-shadow: inset 0 1px 1px #5F5F5F;
+	-moz-box-shadow: inset 0 1px 1px #5F5F5F;
+	-webkit-box-shadow: inset 0 1px 1px #5F5F5F;
+	-moz-user-select: text;
+}
+
+.mac-toolbar .search input:focus {
+	outline: none;
+	box-shadow: inset 0 1px 1px #7F7F7F, 0 0 5px #62A1D7, 0 0 5px #62A1D7, 0 1px 5px #62A1D7, 0 1px 5px #62A1D7;
+	-moz-box-shadow: inset 0 1px 1px #7F7F7F, 0 0 5px #62A1D7, 0 0 5px #62A1D7, 0 1px 5px #62A1D7, 0 1px 5px #62A1D7;
+	-webkit-box-shadow: inset 0 1px 1px #7F7F7F, 0 0 5px #62A1D7, 0 0 5px #62A1D7, 0 1px 5px #62A1D7, 0 1px 5px #62A1D7;
+}
