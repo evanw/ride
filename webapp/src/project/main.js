@@ -1,4 +1,4 @@
-$(document).ready(function() {
+$(window).load(function() {
 	var contents = [
 	new Toolbar.Button('Settings', '/static/images/settings.png').floatRight(),
 		new Toolbar.Button('Run', '/static/images/run.png'),
@@ -12,6 +12,5 @@ $(document).ready(function() {
 		$('.editor').css({ top: toolbar.height() + 'px' });
 	}
 	$(window).resize(resize);
-	$(window).load(resize);
 	resize();
 });

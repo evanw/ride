@@ -24,7 +24,7 @@ class Builder(Thread):
         open(self.output_path, 'w').write(data)
         print 'built %s (%u lines)' % (self.output_path, len(data.split('\n')))
 
-    def monitor(self):
+    def run(self):
         a = stat(self.input_path)
         while True:
             time.sleep(0.5)
@@ -33,16 +33,23 @@ class Builder(Thread):
                 a = b
                 self.build()
 
-    def run(self):
-        self.build()
-        if 'release' not in sys.argv:
-            self.monitor()
-
 if __name__ == '__main__':
-    Builder('src/main/', 'www/static/main/generated.js').start()
-    Builder('src/editor/', 'www/static/editor/generated.js').start()
-    Builder('src/project/', 'www/static/project/generated.js').start()
+    builders = [
+        Builder('src/main/', 'www/static/main/generated.js'),
+        Builder('src/project/', 'www/static/project/generated.js'),
+        Builder('src/codeview/', 'www/static/codeview/generated.js'),
+        Builder('src/nodeview/', 'www/static/nodeview/generated.js'),
+    ]
+
+    for b in builders:
+        b.build()
 
     if 'release' not in sys.argv:
-        while True:
-            time.sleep(1)
+        for b in builders:
+            b.start()
+
+        # wait until Ctrl+C
+        try:
+            time.sleep(99999999)
+        finally:
+            sys.exit()

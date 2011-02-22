@@ -1,4 +1,4 @@
-$(document).ready(function() {
+$(window).load(function() {
 	var contents = [
 		new Toolbar.Button('Settings', '/static/images/settings.png').floatRight(),
 		new Toolbar.Button('New Project', '/static/images/newproject.png').click(function() {
@@ -13,6 +13,5 @@ $(document).ready(function() {
 		$('.contents').css({ top: toolbar.height() + 'px' });
 	}
 	$(window).resize(resize);
-	$(window).load(resize);
 	resize();
 });

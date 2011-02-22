@@ -3,7 +3,7 @@
 	-webkit-box-shadow: 0 0 5px black;
 }
 
-.editor {
+.nodeview {
 	position: absolute;
 	top: 56px;
 	left: 0;
@@ -13,7 +13,7 @@
 	-webkit-user-select: none;
 }
 
-.editor iframe {
+.nodeview iframe {
 	width: 100%;
 	height: 100%;
 	border: none;
