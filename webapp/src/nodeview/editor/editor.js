@@ -2,11 +2,22 @@ function Editor() {
 	this.doc = new Document();
 	this.tools = [
 		// Listed in order of precedence
+		new PopupTool(this.doc),
 		new NodeLinkTool(this.doc),
 		new DraggingTool(this.doc),
 		new SelectionTool(this.doc)
 	];
 }
+
+Editor.prototype.insertNode = function(title, inputs, outputs) {
+	var node = new Node(title, inputs, outputs);
+	this.doc.nodes.push(node);
+	node.generateHTML();
+
+	var rect = Rect.getFromElement(node.element);
+	node.element.style.left = Math.floor(($(window).width() - rect.width) / 2) + 'px';
+	node.element.style.top = Math.floor(($(window).height() - rect.height) / 2) + 'px';
+};
 
 Editor.prototype.drawLinks = function(c) {
 	for (var i = 0; i < this.doc.nodes.length; i++) {
@@ -75,4 +86,8 @@ Editor.prototype.updateRects = function() {
 
 Editor.prototype.selectAll = function() {
 	this.doc.setSelection(this.doc.nodes);
+};
+
+Editor.prototype.deleteSelection = function() {
+	this.doc.deleteSelection();
 };

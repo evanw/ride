@@ -1,0 +1,18 @@
+.mac-popup, .mac-popup canvas, .mac-popup > div {
+	position: absolute;
+}
+
+.mac-popup {
+	display: none;
+	color: black;
+	cursor: default;
+	overflow: hidden;
+	font: 12px 'Lucida Grande', Helvetica, Arial, sans-serif;
+	-moz-user-select: -moz-none;
+	-webkit-user-select: none;
+}
+
+.mac-popup input[type=text] {
+	-moz-user-select: text;
+	cursor: text;
+}

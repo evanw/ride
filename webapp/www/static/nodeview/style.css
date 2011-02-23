@@ -116,3 +116,21 @@ canvas {
 	position: absolute;
 	display: none;
 }
+
+.mac-popup {
+	z-index: 1;
+}
+
+.mac-popup table {
+	border-collapse: collapse;
+}
+
+.mac-popup td {
+	padding: 0;
+	vertical-align: top;
+}
+
+.mac-popup td:first-child {
+	vertical-align: middle;
+	padding: 0 10px 0 3px;
+}

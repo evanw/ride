@@ -6,8 +6,11 @@ function Node(title, inputNames, outputNames) {
 	this.inputs = [];
 	this.outputs = [];
 	this.rect = null;
+	this.editRect = null;
 	this.element = null;
 	this.createElement();
+
+	this.popup = new Popup().setDirection('right').setHTML(this.generatePopupHTML());
 
 	for (var i = 0; i < inputNames.length; i++) {
 		this.inputs.push(new Input(inputNames[i]));
@@ -16,6 +19,19 @@ function Node(title, inputNames, outputNames) {
 		this.outputs.push(new Output(outputNames[i]));
 	}
 }
+
+Node.prototype.generatePopupHTML = function() {
+	// TODO: this will be different obviously, just for testing right now
+	var html = '';
+	html += '<table>';
+	for (var name in this) {
+		if (this.hasOwnProperty(name)) {
+			html += '<tr><td>' + name + '</td><td><input type="text" value="' + textToHTML(this[name] + '') + '"></td></tr>';
+		}
+	}
+	html += '</table>';
+	return html;
+};
 
 Node.prototype.addInput = function(input) {
 	this.inputs.push(input);
@@ -33,9 +49,17 @@ Node.prototype.createElement = function() {
 	document.body.appendChild(this.element);
 };
 
+Node.prototype.deleteElement = function() {
+	this.element.parentNode.removeChild(this.element);
+	this.element = null;
+
+	this.popup.deleteElement();
+};
+
 Node.prototype.updateRects = function() {
 	this.rect = Rect.getFromElement(this.element, true);
-	
+	this.editRect = Rect.getFromElement($(this.element).find('.edit-link span')[0], false);
+
 	for (var i = 0; i < this.inputs.length; i++) {
 		var input = this.inputs[i];
 		input.rect = Rect.getFromElement(input.element, false);
@@ -45,6 +69,8 @@ Node.prototype.updateRects = function() {
 		var output = this.outputs[i];
 		output.rect = Rect.getFromElement(output.element, false);
 	}
+
+	this.popup.setAnchor(this.editRect.right + 3, this.editRect.centerY);
 };
 
 Node.prototype.generateHTML = function() {
