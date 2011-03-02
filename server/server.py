@@ -11,11 +11,8 @@ class MyUDPHandler(SocketServer.BaseRequestHandler):
         data = self.request[0].strip()
         m = Message(data)
         socket = self.request[1]
-        print "hi"
-        print m.path
         if m.action == 'GET' and m.path == 'projects':
-            print project_manager.getProjects('json')
-            socket.sendto(project_manager.getProjects('json'), (self.client_address, SEND_PORT))
+            socket.sendto(project_manager.get_projects('json'), (self.client_address[0], SEND_PORT))
             return
 
 project_manager = ProjectManager()

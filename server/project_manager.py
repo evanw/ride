@@ -1,4 +1,5 @@
 import os, glob
+import json
 import yaml
 
 class ProjectManager:
@@ -18,4 +19,4 @@ class ProjectManager:
         
     def get_projects(self, format):
         if format == 'json':
-            return JSONEncoder().encode({"projects": self.projects})
+            return json.dumps({"projects": self.projects})
