@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html><head>
+  <script type="text/javascript" src="http://localhost:5000/socket.io/socket.io.js"></script>
+  <script type="text/javascript">
+
+function log(data) {
+  var div = document.createElement('div');
+  div.innerHTML += data.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  document.body.appendChild(div);
+}
+
+window.onload = function() {
+  var socket = new io.Socket('localhost', { port: 5000 });
+  socket.on('connect', function() {
+    log('connect');
+    socket.send('{ "action": "GET", "path": "projects" }');
+  });
+  socket.on('message', function(data) {
+    log('message ' + data);
+  });
+  socket.on('disconnect', function() {
+    log('disconnect');
+  });
+  socket.connect();
+  log('window.onload done');
+};
+
+  </script>
+</head><body>
+</body></html>
