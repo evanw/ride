@@ -19,4 +19,6 @@ class ProjectManager:
         
     def get_projects(self, format):
         if format == 'json':
-            return json.dumps({"projects": self.projects})
+            return {
+                'projects': [{ 'name': name } for name in self.projects]
+            }

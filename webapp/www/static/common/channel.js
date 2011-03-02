@@ -13,6 +13,7 @@ var Channel = (function() {
 		if (index >= names.length) {
 			return this;
 		}
+		var name = names[index];
 		if (!this.map.hasOwnProperty(name)) {
 			this.map[name] = new Container();
 		}

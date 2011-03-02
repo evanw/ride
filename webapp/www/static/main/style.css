@@ -2,7 +2,7 @@ body {
 	margin: 20px;
 	color: black;
 	background: #DFDFDF;
-	font: 12px Arial, sans-serif;
+	font: 12px 'Lucida Grande', Arial, sans-serif;
 }
 
 a { color: inherit; }
@@ -16,26 +16,59 @@ a { color: inherit; }
 	padding: 0 20px;
 }
 
-.projects {
-	padding: 20px 0;
+.contents > div {
+	max-width: 700px;
+	margin: 20px auto;
 }
 
 .intro {
-	position: absolute;
-	top: 20px;
-	right: 20px;
-	width: 250px;
-	background: white;
-	border: 1px solid #7F7F7F;
-	border-radius: 10px;
-	padding: 15px;
+	min-height: 156px;
+	margin: 50px 0;
+	padding: 50px 0 50px 270px;
+	background: url(/static/images/rideicon-big.png) -30px 0 no-repeat;
 }
 
 .intro h1 {
 	margin: 0;
-	text-align: center;
 }
 
 .intro p {
 	margin: 15px 0 0 0;
+	line-height: 16px;
+}
+
+.projects {
+	padding: 20px;
+	background: white;
+	border: 1px solid #7F7F7F;
+	border-radius: 20px;
+}
+
+.newproject {
+	float: right;
+}
+
+.projects h2 {
+	margin: 0 0 15px 0;
+}
+
+.project {
+	height: 16px;
+	line-height: 16px;
+	padding-left: 20px;
+	margin: 2px 0;
+	background: url(/static/images/foldericon.png) 0 0 no-repeat;
+}
+
+.project-link {
+	cursor: pointer;
+}
+
+.project-link:hover {
+	text-decoration: underline;
+}
+
+.noprojects {
+	font-style: italic;
+	color: gray;
 }

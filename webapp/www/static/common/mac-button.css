@@ -1,0 +1,27 @@
+.mac-button {
+	cursor: pointer;
+	font-size: 11px;
+	border: 1px solid #7F7F7F;
+	margin-right: 7px;
+	display: inline-block;
+	line-height: 18px;
+	border-radius: 11px;
+	padding: 1px 15px;
+	background: #D7D7D7;
+	background: -moz-linear-gradient(#FFFFFF, #EFEFEF 25%, #E7E7E7 75%, #D7D7D7);
+	background: -webkit-gradient(linear, left top, left bottom, from(#FFFFFF), color-stop(0.25, #EFEFEF), color-stop(0.75, #E7E7E7), to(#D7D7D7));
+	box-shadow: 0 1px 0 #CFCFCF;
+	-o-box-shadow: 0 1px 0 #CFCFCF;
+	-moz-box-shadow: 0 1px 0 #CFCFCF;
+	-webkit-box-shadow: 0 1px 0 #CFCFCF;
+	text-shadow: 0 1px 0 #F7F7F7;
+}
+
+.mac-button:active {
+	color: white !important;
+	text-shadow: 0 1px 0 #1F5F8F !important;
+	border-color: #1F5F8F !important;
+	background: #4787CF !important;
+	background: -moz-linear-gradient(#579FDF, #4787CF 50%, #2F7FBF) !important;
+	background: -webkit-gradient(linear, left top, left bottom, from(#579FDF), color-stop(0.5, #4787CF), to(#2F7FBF)) !important;
+}
