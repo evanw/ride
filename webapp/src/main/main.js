@@ -14,4 +14,8 @@ $(window).load(function() {
 	}
 	$(window).resize(resize);
 	resize();
+
+	Channel('server', 'status').subscribe(function(data) {
+		$('.projects').html(JSON.stringify(data));
+	});
 });
