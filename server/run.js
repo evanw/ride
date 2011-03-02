@@ -34,6 +34,6 @@ udp.bind(5001, 'localhost');
 var socket = io.listen(server);
 socket.on('connection', function(client) {
 	client.on('message', function(data) {
-		udp.send(data, 0, data.length, 5002, 'localhost');
+		udp.send(new Buffer(data), 0, data.length, 5002, 'localhost');
 	});
 });
