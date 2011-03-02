@@ -24,8 +24,8 @@ server.listen(5000);
 var udp = dgram.createSocket('udp4');
 udp.on('message', function(data) {
 	data = data.toString();
-	for (var i = 0; i < socket.clients.length; i++) {
-		socket.clients.send(data);
+	for (var name in socket.clients) {
+		socket.clients[name].send(data);
 	}
 });
 udp.bind(5001, 'localhost');
