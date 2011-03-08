@@ -161,15 +161,15 @@ var Toolbar = (function() {
 	};
 
 	Button.prototype._setImage = function() {
-		var c = this.element.firstChild.getContext('2d');
-		var w = c.canvas.width = this.image.width;
-		var h = c.canvas.height = this.image.height;
-		c.drawImage(this.image, 0, 0);
+		try {
+			var c = this.element.firstChild.getContext('2d');
+			var w = c.canvas.width = this.image.width;
+			var h = c.canvas.height = this.image.height;
+			c.drawImage(this.image, 0, 0);
 
-		// darken the image during clicking
-		// for security reasons, this only works when the image is on the same domain!
-		if ($(this.element).is('.hovered.pressed')) {
-			try {
+			// darken the image during clicking
+			// for security reasons, this only works when the image is on the same domain!
+			if ($(this.element).is('.hovered.pressed')) {
 				var data = c.getImageData(0, 0, w, h);
 				for (var x = 0; x < w; x++) {
 					for (var y = 0; y < h; y++) {
@@ -180,10 +180,10 @@ var Toolbar = (function() {
 					}
 				}
 				c.putImageData(data, 0, 0, 0, 0, w, h);
-			} catch (e) {
-				// this happens when there is a security error or when
-				// the image hasn't loaded yet and the size is 0x0
 			}
+		} catch (e) {
+			// this happens when there is a security error or when
+			// the image hasn't loaded yet and the size is 0x0
 		}
 	};
 

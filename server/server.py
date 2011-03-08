@@ -1,16 +1,23 @@
 #!/usr/bin/env python
 
 import os
-from channel import subscribe, Channel as ch
+from channel import Listener
 from project_manager import ProjectManager
 
 project_manager = ProjectManager()
 project_manager.set_workspace('~/ros_ide/workspace')
 
-@subscribe('workspace', 'list')
-def workspace_list(data):
-    print 'workspace list request:', repr(data)
-    ch('workspace', 'list').publish(project_manager.get_projects('json'))
+class ProjectManagerServer(Listener):
+    def __init__(self):
+        self.subscribe('workspace', 'list')
 
-# let the channel server do its thing
-import time; time.sleep(999999)
+    def on_message(self, channel, data):
+        if channel == ('workspace', 'list'):
+            self.publish(('workspace', 'list'), project_manager.get_projects('json'))
+
+# this will handle requests on a separate thread
+pms = ProjectManagerServer()
+
+# serve website on main thread
+import staticfileserver
+staticfileserver.serve_forever(8000)

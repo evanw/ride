@@ -1,111 +1,54 @@
-'''
-Channel module
-
-This module adds channel support to python:
-
-    from channel import subscribe, Channel
-
-    @subscribe('foo', 'bar')
-    def foo_bar(data):
-        print data, 'sent to channel foo.bar'
-
-    Channel('sample', 'channel', 'name').publish({
-        'testing': True,
-        'data': None
-    })
-
-A channel is named by a list of strings, which was chosen for ease of
-construction and parsing. Importing this module automatically starts a thread
-that notifies all subscribers of new messages.
-'''
-
+import io
 import json
-import socket
 import threading
 
-_lock = threading.Lock()
-
-class _Container:
+class _Server(io.Server, threading.Thread):
     def __init__(self):
+        io.Server.__init__(self)
+        threading.Thread.__init__(self)
         self.map = {}
-        self.callbacks = []
 
-    def lookup(self, names, index=0):
-        if index >= len(names):
-            return self
-        name = names[index]
-        if name not in self.map:
-            self.map[name] = _Container()
-        return self.map[name].lookup(names, index + 1)
+    def on_message(self, client, data):
+        data = json.loads(data)
+        self.publish(tuple(data['channel']), data['data'], self)
 
-    def subscribe(self, callback):
-        self.callbacks.append(callback)
+    def subscribe(self, listener, channel):
+        if not channel in self.map:
+            self.map[channel] = []
+        self.map[channel].append(listener)
 
-    def unsubscribe(self, callback):
-        while callback in self.callbacks:
-            self.callbacks.remove(callback)
+    def unsubscribe(self, listener, channel):
+        if channel in self.map:
+            self.map[channel].remove(listener)
+            if not self.map[channel]:
+                del self.map[channel]
 
-    def publish(self, data):
-        for callback in self.callbacks:
-            callback(data)
+    def publish(self, channel, data, listener_to_ignore):
+        if channel in self.map:
+            for listener in self.map[channel]:
+                if listener_to_ignore != listener:
+                    listener.on_message(channel, data)
+        if listener_to_ignore != self:
+            self.broadcast(json.dumps({ 'channel': channel, 'data': data }))
 
-class Channel:
-    def __init__(self, *name):
-        self.name = name
-    
-    def subscribe(self, callback):
-        '''Add callback to the list of callbacks for this channel.'''
-        _lock.acquire()
-        channel = _root.lookup(self.name).subscribe(callback)
-        _lock.release()
-    
-    def unsubscribe(self, callback):
-        '''Remove callback from the list of callbacks for this channel.'''
-        _lock.acquire()
-        channel = _root.lookup(self.name).unsubscribe(callback)
-        _lock.release()
-    
-    def publish(self, data):
-        '''
-        Send data on this channel.
-        
-        Note: this will not notify any callbacks for this channel, callbacks
-        for this channel will only be notified when data is received.
-        '''
-        data['channel'] = self.name
-        _socket.sendto(json.dumps(data), ('localhost', 5001))
+_server = _Server()
 
-_root = _Container()
-_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-_socket.bind(('localhost', 5002))
+class Listener:
+    def on_message(self, channel, message):
+        pass
+
+    def subscribe(self, *channel):
+        _server.subscribe(self, tuple(map(str, channel)))
+
+    def unsubscribe(self, *channel):
+        _server.unsubscribe(self, tuple(map(str, channel)))
+
+    def publish(self, channel, data):
+        _server.publish(tuple(map(str, channel)), data, self)
 
 def _run():
-    while 1:
-        data = json.loads(_socket.recvfrom(2048)[0])
-        _lock.acquire()
-        _root.lookup(data['channel']).publish(data)
-        _lock.release()
+    _server.listen(5000)
 
 _thread = threading.Thread(target=_run)
 _thread.daemon = True
 _thread.start()
-
-def subscribe(*name):
-    '''
-    A decorator that makes subscribing to channels easy:
-    
-        @subscribe('foo', 'bar')
-        def foo_bar(data):
-            print data, 'sent to channel foo.bar'
-
-    This is equivalent to:
-    
-        def foo_bar(data):
-            print data, 'sent to channel foo.bar'
-        
-        Channel('foo', 'bar').subscribe(foo_bar)
-    '''
-    def _channel(func):
-        Channel(*name).subscribe(func)
-        return func
-    return _channel

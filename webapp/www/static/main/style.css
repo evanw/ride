@@ -42,6 +42,8 @@ a { color: inherit; }
 	background: white;
 	border: 1px solid #7F7F7F;
 	border-radius: 20px;
+	-moz-border-radius: 20px;
+	-webkit-border-radius: 20px;
 }
 
 .newproject {

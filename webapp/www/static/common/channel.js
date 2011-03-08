@@ -58,27 +58,34 @@ var Channel = (function() {
 	};
 
 	Channel.prototype.publish = function(data) {
-		data.channel = this.name;
-		if (socket) socket.send(JSON.stringify(data));
+		if (socket) {
+			socket.send(JSON.stringify({
+				'channel': this.name,
+				'data': data
+			}));
+		}
 	};
 	
 	////////////////////////////////////////////////////////////////////////////////
 	// socket.io
 	////////////////////////////////////////////////////////////////////////////////
 
-	document.write('<script type="text/javascript" src="http://' + document.location.hostname + ':5000/socket.io/socket.io.js"></script>');
+	var port = 5000;
+	document.write('<script type="text/javascript" src="http://' + document.location.hostname + ':' + port + '/socket.io/socket.io.js"></script>');
 
 	$(window).load(function() {
-		socket = new io.Socket(document.location.hostname, { port: 5000 });
+		window.WEB_SOCKET_SWF_LOCATION = 'http://' + document.location.hostname + ':' + port + window.WEB_SOCKET_SWF_LOCATION;
+
+		socket = new io.Socket(document.location.hostname, { 'port': port });
 		socket.on('connect', function() {
-			root.lookup(['server', 'status']).publish({ status: 'connected' });
+			root.lookup(['server', 'status']).publish({ 'status': 'connected' });
 		});
 		socket.on('disconnect', function() {
-			root.lookup(['server', 'status']).publish({ status: 'disconnected' });
+			root.lookup(['server', 'status']).publish({ 'status': 'disconnected' });
 		});
 		socket.on('message', function(data) {
 			var json = JSON.parse(data);
-			root.lookup(json.channel).publish(json);
+			root.lookup(json['channel']).publish(json['data']);
 		});
 		socket.connect();
 	});
