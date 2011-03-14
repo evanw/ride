@@ -3,9 +3,11 @@ function PopupTool(doc) {
 }
 
 PopupTool.prototype.mousePressed = function(x, y) {
+	var nodes = this.doc.rawDoc.nodes;
+	
 	// don't lose focus from visible popups
-	for (var i = 0; i < this.doc.nodes.length; i++) {
-		var node = this.doc.nodes[i];
+	for (var i = 0; i < nodes.length; i++) {
+		var node = nodes[i];
 		if (node.popup.isVisible && Rect.getFromElement(node.popup.element, false).contains(x, y)) {
 			return true;
 		}
@@ -13,13 +15,13 @@ PopupTool.prototype.mousePressed = function(x, y) {
 
 	// show at most one popup, and stop other tools if a popup is shown
 	var hitEditRect = false;
-	for (var i = 0; i < this.doc.nodes.length; i++) {
-		var node = this.doc.nodes[i];
+	for (var i = 0; i < nodes.length; i++) {
+		var node = nodes[i];
 		if (!hitEditRect && node.editRect.contains(x, y)) {
 			hitEditRect = true;
-			node.popup.show();
+			node.showPopup();
 		} else {
-			node.popup.hide();
+			node.hidePopup();
 		}
 	}
 

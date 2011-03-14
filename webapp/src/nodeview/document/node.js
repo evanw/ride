@@ -1,24 +1,50 @@
-var nextNodeID = 0;
-
-function Node(title, inputNames, outputNames) {
-	this.id = nextNodeID++;
-	this.title = title;
+function Node() {
+	this.x = 0;
+	this.y = 0;
+	this.id = 0;
+	this.title = '';
 	this.inputs = [];
 	this.outputs = [];
 	this.rect = null;
 	this.editRect = null;
 	this.element = null;
-	this.createElement();
-
-	this.popup = new Popup().setDirection('right').setHTML(this.generatePopupHTML());
-
-	for (var i = 0; i < inputNames.length; i++) {
-		this.inputs.push(new Input(inputNames[i]));
-	}
-	for (var i = 0; i < outputNames.length; i++) {
-		this.outputs.push(new Output(outputNames[i]));
-	}
 }
+
+Node.prototype.fromJSON = function(json) {
+	this.x = json.x;
+	this.y = json.y;
+	this.id = json.id;
+	this.title = json.title;
+	this.inputs = json.inputs.map(function(i) {
+		return new Connection(this).fromJSON(i);
+	});
+	this.outputs = json.outputs.map(function(i) {
+		return new Connection(this).fromJSON(i);
+	});
+	return this;
+};
+
+Node.prototype.toJSON = function() {
+	return {
+		x: this.x,
+		y: this.y,
+		id: this.id,
+		title: this.title,
+		inputs: this.inputs.map(function(i) {
+			return i.toJSON();
+		}),
+		outputs: this.outputs.map(function(o) {
+			return o.toJSON();
+		})
+	};
+};
+
+Node.prototype.update = function(name, value) {
+	this[name] = value;
+	this.generateHTML();
+	this.updateRects();
+	this.hidePopup();
+};
 
 Node.prototype.generatePopupHTML = function() {
 	// TODO: this will be different obviously, just for testing right now
@@ -26,27 +52,21 @@ Node.prototype.generatePopupHTML = function() {
 	html += '<table>';
 	for (var name in this) {
 		if (this.hasOwnProperty(name)) {
-			html += '<tr><td>' + name + '</td><td><input type="text" value="' + textToHTML(this[name] + '') + '"></td></tr>';
+			html += '<tr><td>' + name + '</td><td><input type="text" value="' + (this[name] + '').toHTML() + '"></td></tr>';
 		}
 	}
 	html += '</table>';
 	return html;
 };
 
-Node.prototype.addInput = function(input) {
-	this.inputs.push(input);
-	input.parent = this;
-};
-
-Node.prototype.addOutput = function(output) {
-	this.outputs.push(output);
-	output.parent = this;
-};
-
 Node.prototype.createElement = function() {
 	this.element = document.createElement('div');
 	this.element.className = 'node';
 	document.body.appendChild(this.element);
+
+	this.popup = new Popup().setDirection('right');
+	this.generateHTML();
+	this.updateRects();
 };
 
 Node.prototype.deleteElement = function() {
@@ -54,9 +74,13 @@ Node.prototype.deleteElement = function() {
 	this.element = null;
 
 	this.popup.deleteElement();
+	this.popup = null;
 };
 
 Node.prototype.updateRects = function() {
+	this.element.style.left = this.x + 'px';
+	this.element.style.top = this.y + 'px';
+
 	this.rect = Rect.getFromElement(this.element, true);
 	this.editRect = Rect.getFromElement($(this.element).find('.edit-link span')[0], false);
 
@@ -81,14 +105,14 @@ Node.prototype.generateHTML = function() {
 	// inputs to html
 	for (var i = 0; i < this.inputs.length; i++) {
 		html += '<div class="input"><div class="bullet" id="node' + this.id + '-input' + i + '">';
-		html += '<div></div></div>&nbsp;' + textToHTML(this.inputs[i].name) + '</div>';
+		html += '<div></div></div>&nbsp;' + this.inputs[i].name.toHTML() + '</div>';
 	}
 
 	html += '</td><td>';
 
 	// outputs to html
 	for (var i = 0; i < this.outputs.length; i++) {
-		html += '<div class="output">' + textToHTML(this.outputs[i].name) + '&nbsp;';
+		html += '<div class="output">' + this.outputs[i].name.toHTML() + '&nbsp;';
 		html += '<div class="bullet" id="node' + this.id + '-output' + i + '"><div></div></div></div>';
 	}
 
@@ -107,4 +131,13 @@ Node.prototype.generateHTML = function() {
 	}
 	
 	this.updateRects();
+};
+
+Node.prototype.showPopup = function() {
+	this.popup.setHTML(this.generatePopupHTML());
+	this.popup.show();
+};
+
+Node.prototype.hidePopup = function() {
+	this.popup.hide();
 };

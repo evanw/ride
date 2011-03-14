@@ -14,12 +14,10 @@ class ProjectManager:
         
         self.projects = os.listdir(self.workspace_path)
         
-        
-    def get_projects(self, format):
-        if format == 'json':
-            return {
-                'projects': [{ 'name': name } for name in self.projects]
-            }
+    def get_projects(self):
+        return {
+            'projects': [{ 'name': name } for name in self.projects]
+        }
 
     def read_project_file(self, project):
         path = os.path.join(self.workspace_path, project, 'project.yaml')

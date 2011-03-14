@@ -1,12 +1,20 @@
 function Document() {
-	this.nodes = [];
-	this.sel = [];
+	this.rawDoc = new RawDocument();
+	this.undoStack = new UndoStack();
 }
+
+Document.prototype.getNodes = function() {
+	return this.rawDoc.nodes;
+};
+
+Document.prototype.getSelection = function() {
+	return this.rawDoc.sel;
+};
 
 Document.prototype.getNodesInRect = function(rect) {
 	var nodes = [];
-	for (var i = 0; i < this.nodes.length; i++) {
-		var node = this.nodes[i];
+	for (var i = 0; i < this.rawDoc.nodes.length; i++) {
+		var node = this.rawDoc.nodes[i];
 		if (node.rect.intersects(rect)) {
 			nodes.push(node);
 		}
@@ -14,53 +22,42 @@ Document.prototype.getNodesInRect = function(rect) {
 	return nodes;
 };
 
-Document.prototype.setSelection = function(sel) {
-	for (var i = 0; i < this.nodes.length; i++) {
-		this.nodes[i].element.className = 'node';
-	}
-	for (var i = 0; i < sel.length; i++) {
-		sel[i].element.className = 'selected node';
-	}
-	this.sel = sel;
+Document.prototype.addNode = function(node) {
+	this.undoStack.push(new AddNodeCommand(this.rawDoc, node));
 };
 
 Document.prototype.deleteNode = function(node) {
-	// remove links
-	for (var i = 0; i < node.inputs.length; i++) {
-		var input = node.inputs[i];
-		for (var j = 0; j < input.outputs.length; j++) {
-			input.outputs[j].disconnectFrom(input);
-		}
-	}
-	for (var i = 0; i < node.outputs.length; i++) {
-		var output = node.outputs[i];
-		for (var j = 0; j < output.inputs.length; j++) {
-			output.disconnectFrom(output.inputs[j]);
-		}
-	}
+	this.undoStack.push(new DeleteNodeCommand(this.rawDoc, node));
+};
 
-	// deselect node
-	for (var i = 0; i < this.sel.length; i++) {
-		if (this.sel[i] == node) {
-			this.sel.splice(i, 1);
-			break;
+Document.prototype.updateNode = function(node, name, value) {
+	if (node[name] !== value) {
+		this.undoStack.push(new UpdateNodeCommand(this.rawDoc, node, name, value));
+	}
+};
+
+Document.prototype.setSelection = function(sel) {
+	// only change the selection if it's different
+	var different = false;
+	if (sel.length != this.rawDoc.sel.length) {
+		different = true;
+	} else {
+		function compareNodes(a, b) { return a.id - b.id; }
+		sel.sort(compareNodes);
+		this.rawDoc.sel.sort(compareNodes);
+		for (var i = 0; i < sel.length; i++) {
+			if (sel[i] != this.rawDoc.sel[i]) {
+				different = true;
+				break;
+			}
 		}
 	}
-
-	// remove node
-	for (var i = 0; i < this.nodes.length; i++) {
-		if (this.nodes[i] == node) {
-			this.nodes.splice(i, 1);
-			break;
-		}
-	}
-
-	// remove <div> from screen
-	node.deleteElement();
+	
+	if (different) this.undoStack.push(new SetSelectionCommand(this.rawDoc, sel));
 };
 
 Document.prototype.deleteSelection = function() {
-	while (this.sel.length > 0) {
-		this.deleteNode(this.sel[0]);
+	while (this.rawDoc.sel.length > 0) {
+		this.undoStack.push(new RemoveNodeCommand(this.rawDoc, this.rawDoc.sel[0]));
 	}
 };

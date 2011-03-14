@@ -1,23 +1,40 @@
-function textToHTML(text) {
-	return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
-}
+String.prototype.toHTML = function() {
+	return this.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+};
 
-function addOnce(array, element) {
-	for (var i = 0; i < array.length; i++) {
-		if (array[i] == element) {
+Array.prototype.map = function(func) {
+	var result = [];
+	for (var i = 0; i < this.length; i++) {
+		result.push(func(this[i]));
+	}
+	return result;
+};
+
+Array.prototype.addOnce = function(element) {
+	for (var i = 0; i < this.length; i++) {
+		if (this[i] == element) {
 			return;
 		}
 	}
-	array.push(element);
-}
+	this.push(element);
+};
 
-function removeAll(array, element) {
-	for (var i = 0; i < array.length; i++) {
-		if (array[i] == element) {
-			array.splice(i--, 1);
+Array.prototype.removeAll = function(element) {
+	for (var i = 0; i < this.length; i++) {
+		if (this[i] == element) {
+			this.splice(i--, 1);
 		}
 	}
-}
+};
+
+Array.prototype.removeOnce = function(element) {
+	for (var i = 0; i < this.length; i++) {
+		if (this[i] == element) {
+			this.splice(i, 1);
+			return;
+		}
+	}
+};
 
 function drawLink(c, ax, ay, bx, by) {
 	c.strokeStyle = 'yellow';

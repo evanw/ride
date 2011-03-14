@@ -34,8 +34,9 @@ NodeLinkTool.prototype.updateElement = function(x, y) {
 };
 
 NodeLinkTool.prototype.getInputFromPoint = function(x, y) {
-	for (var i = 0; i < this.doc.nodes.length; i++) {
-		var node = this.doc.nodes[i];
+	var nodes = this.doc.rawDoc.nodes;
+	for (var i = 0; i < nodes.length; i++) {
+		var node = nodes[i];
 		for (var j = 0; j < node.inputs.length; j++) {
 			var input = node.inputs[j];
 			if (input.rect.contains(x, y)) {
@@ -47,8 +48,9 @@ NodeLinkTool.prototype.getInputFromPoint = function(x, y) {
 };
 
 NodeLinkTool.prototype.getOutputFromPoint = function(x, y) {
-	for (var i = 0; i < this.doc.nodes.length; i++) {
-		var node = this.doc.nodes[i];
+	var nodes = this.doc.rawDoc.nodes;
+	for (var i = 0; i < nodes.length; i++) {
+		var node = nodes[i];
 		for (var j = 0; j < node.outputs.length; j++) {
 			var output = node.outputs[j];
 			if (output.rect.contains(x, y)) {

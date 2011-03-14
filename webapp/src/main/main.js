@@ -36,11 +36,11 @@ $(window).load(function() {
 	$(window).resize(resize);
 	resize();
 
-	Channel('server', 'status').subscribe(function(data) {
-		Channel('workspace', 'list').publish({});
+	channel('server', 'status').subscribe(function(data) {
+		channel('workspace', 'list', 'request').publish({});
 	});
 
-	Channel('workspace', 'list').subscribe(function(data) {
+	channel('workspace', 'list', 'response').subscribe(function(data) {
 		updateProjectList(data.projects);
 	});
 });

@@ -5,23 +5,23 @@ function DraggingTool(doc) {
 }
 
 DraggingTool.prototype.mousePressed = function(x, y) {
+	var sel = this.doc.getSelection();
+	
 	this.oldX = x;
 	this.oldY = y;
 
 	// Did we click on the existing selection?
 	var draggingExistingSelection = false;
-	for (var i = 0; i < this.doc.sel.length; i++) {
-		if (this.doc.sel[i].rect.contains(x, y)) {
+	for (var i = 0; i < sel.length; i++) {
+		if (sel[i].rect.contains(x, y)) {
 			draggingExistingSelection = true;
 			break;
 		}
 	}
 
 	// Drag the existing selection or a single unselected node
-	if (draggingExistingSelection) {
-		var sel = this.doc.sel;
-	} else {
-		var sel = this.doc.getNodesInRect(new Rect(x, y, 0, 0));
+	if (!draggingExistingSelection) {
+		sel = this.doc.getNodesInRect(new Rect(x, y, 0, 0));
 		if (sel.length == 0) {
 			return false;
 		} else if (sel.length > 1) {
@@ -41,6 +41,7 @@ DraggingTool.prototype.mousePressed = function(x, y) {
 	this.minX = 30 + x - this.minX;
 	this.minY = 30 + y - this.minY;
 
+	this.doc.undoStack.beginBatch();
 	return true;
 };
 
@@ -49,15 +50,16 @@ DraggingTool.prototype.mouseDragged = function(x, y) {
 	y = Math.max(y, this.minY);
 	var dx = x - this.oldX;
 	var dy = y - this.oldY;
-	var sel = this.doc.sel;
+	var sel = this.doc.getSelection();
 	for (var i = 0; i < sel.length; i++) {
 		var node = sel[i];
-		node.element.style.left = node.rect.left + dx + 'px';
-		node.element.style.top = node.rect.top + dy + 'px';
+		this.doc.updateNode(node, 'x', node.x + dx);
+		this.doc.updateNode(node, 'y', node.y + dy);
 	}
 	this.oldX = x;
 	this.oldY = y;
 };
 
 DraggingTool.prototype.mouseReleased = function(x, y) {
+	this.doc.undoStack.endBatch();
 };
