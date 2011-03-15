@@ -1,22 +1,6 @@
-var c;
-var editor;
-
-function resizeCanvas() {
-	var minSize = editor.getMinSize();
-	c.canvas.width = minSize.width;
-	c.canvas.height = minSize.height;
-}
-
-function draw() {
-	resizeCanvas();
-	editor.draw(c);
-}
-
 $(window).load(function() {
-	c = $('#canvas')[0].getContext('2d');
-	editor = new Editor();
-
-	draw();
+	var context = $('#canvas')[0].getContext('2d');
+	var editor = new Editor(context);
 
 	// need to preventDefault() here instead of mousedown because we
 	// still want mousedown to move keyboard focus into the iframe
@@ -26,19 +10,16 @@ $(window).load(function() {
 
 	$(document).mousedown(function(e) {
 		editor.mousePressed(e.pageX, e.pageY);
-		draw();
 	});
 
 	$(document).mousemove(function(e) {
 		editor.mouseMoved(e.pageX, e.pageY);
 		e.preventDefault();
-		draw();
 	});
 
 	$(document).mouseup(function(e) {
 		editor.mouseReleased(e.pageX, e.pageY);
 		e.preventDefault();
-		draw();
 	});
 
 	var focusCount = 0;
@@ -57,13 +38,13 @@ $(window).load(function() {
 		} else if ((e.ctrlKey || e.metaKey) && e.which == 'A'.charCodeAt(0)) {
 			editor.selectAll();
 			e.preventDefault();
-			draw();
 		} else if (e.which == '\b'.charCodeAt(0)) {
 			editor.deleteSelection();
 			e.preventDefault();
-			draw();
 		}
 	});
 
-	$(window).resize(draw);
+	$(window).resize(function() {
+		editor.draw();
+	});
 });

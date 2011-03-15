@@ -1,9 +1,13 @@
-function Editor() {
-	this.doc = new Document();
+function Editor(context) {
+	var this_ = this;
+	this.context = context;
+	this.doc = new Document(function() {
+		this_.draw();
+	});
 	this.tools = [
 		// Listed in order of precedence
 		new PopupTool(this.doc),
-		// new NodeLinkTool(this.doc),
+		new NodeLinkTool(this.doc),
 		new DraggingTool(this.doc),
 		new SelectionTool(this.doc)
 	];
@@ -20,7 +24,7 @@ function Editor() {
 	]});
 }
 
-Editor.prototype.drawLinks = function(c) {
+Editor.prototype.drawLinks = function() {
 	var nodes = this.doc.getNodes();
 	for (var i = 0; i < nodes.length; i++) {
 		var node = nodes[i];
@@ -30,17 +34,21 @@ Editor.prototype.drawLinks = function(c) {
 				var input = output.connections[k];
 				var ax = output.rect.centerX, ay = output.rect.centerY;
 				var bx = input.rect.left - 8, by = input.rect.centerY;
-				drawLink(c, ax, ay, bx, by);
+				drawLink(this.context, ax, ay, bx, by);
 			}
 		}
 	}
 };
 
-Editor.prototype.draw = function(c) {
-	c.save();
-	c.clearRect(0, 0, c.canvas.width, c.canvas.height);
-	this.drawLinks(c);
-	c.restore();
+Editor.prototype.draw = function() {
+	var canvas = this.context.canvas;
+	var minSize = this.getMinSize();
+	canvas.width = minSize.width;
+	canvas.height = minSize.height;
+	this.context.save();
+	this.context.clearRect(0, 0, canvas.width, canvas.height);
+	this.drawLinks();
+	this.context.restore();
 };
 
 Editor.prototype.getMinSize = function() {

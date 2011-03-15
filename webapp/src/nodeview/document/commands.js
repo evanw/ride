@@ -127,3 +127,43 @@ MoveSelectionCommand.prototype.mergeWith = function(command) {
 	}
 	return false;
 };
+
+////////////////////////////////////////////////////////////////////////////////
+
+function AddConnectionCommand(doc, input, output) {
+	this.doc = doc;
+	this.input = input;
+	this.output = output;
+}
+
+AddConnectionCommand.prototype.undo = function() {
+	this.doc.removeConnection(this.input, this.output);
+};
+
+AddConnectionCommand.prototype.redo = function() {
+	this.doc.addConnection(this.input, this.output);
+};
+
+AddConnectionCommand.prototype.mergeWith = function(command) {
+	return false;
+};
+
+////////////////////////////////////////////////////////////////////////////////
+
+function RemoveConnectionCommand(doc, input, output) {
+	this.doc = doc;
+	this.input = input;
+	this.output = output;
+}
+
+RemoveConnectionCommand.prototype.undo = function() {
+	this.doc.addConnection(this.input, this.output);
+};
+
+RemoveConnectionCommand.prototype.redo = function() {
+	this.doc.removeConnection(this.input, this.output);
+};
+
+RemoveConnectionCommand.prototype.mergeWith = function(command) {
+	return false;
+};

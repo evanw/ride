@@ -27,14 +27,14 @@ NodeLinkTool.prototype.updateElement = function(x, y) {
 
 	var ax = startX - left, ay = startY - top;
 	var bx = endX - left, by = endY - top;
-	var offset = this.start instanceof Input ? -100 : 100;
+	var offset = 100;//this.start instanceof Input ? -100 : 100;
 	var c = this.c;
 
 	drawLink(c, ax, ay, bx, by);
 };
 
 NodeLinkTool.prototype.getInputFromPoint = function(x, y) {
-	var nodes = this.doc.rawDoc.nodes;
+	var nodes = this.doc.getNodes();
 	for (var i = 0; i < nodes.length; i++) {
 		var node = nodes[i];
 		for (var j = 0; j < node.inputs.length; j++) {
@@ -48,7 +48,7 @@ NodeLinkTool.prototype.getInputFromPoint = function(x, y) {
 };
 
 NodeLinkTool.prototype.getOutputFromPoint = function(x, y) {
-	var nodes = this.doc.rawDoc.nodes;
+	var nodes = this.doc.getNodes();
 	for (var i = 0; i < nodes.length; i++) {
 		var node = nodes[i];
 		for (var j = 0; j < node.outputs.length; j++) {
@@ -68,9 +68,9 @@ NodeLinkTool.prototype.mousePressed = function(x, y) {
 	// Otherwise see if we are disconnecting an existing link
 	if (this.output == null) {
 		var input = this.getInputFromPoint(x, y);
-		if (input != null && input.outputs.length > 0) {
-			this.output = input.outputs[0];
-			this.output.disconnectFrom(input);
+		if (input != null && input.connections.length > 0) {
+			this.output = input.connections[0];
+			this.doc.removeConnection(input, this.output);
 		}
 	}
 
@@ -94,6 +94,6 @@ NodeLinkTool.prototype.mouseReleased = function(x, y) {
 
 	var input = this.getInputFromPoint(x, y);
 	if (input != null) {
-		this.output.connectTo(input);
+		this.doc.addConnection(input, this.output);
 	}
 };

@@ -1,5 +1,5 @@
-function Document() {
-	this.rawDoc = new RawDocument();
+function Document(updateCallback) {
+	this.rawDoc = new RawDocument(updateCallback);
 	this.undoStack = new UndoStack();
 }
 
@@ -26,8 +26,8 @@ Document.prototype.addNode = function(node) {
 	this.undoStack.push(new AddNodeCommand(this.rawDoc, node));
 };
 
-Document.prototype.deleteNode = function(node) {
-	this.undoStack.push(new DeleteNodeCommand(this.rawDoc, node));
+Document.prototype.removeNode = function(node) {
+	this.undoStack.push(new RemoveNodeCommand(this.rawDoc, node));
 };
 
 Document.prototype.updateNode = function(node, name, value) {
@@ -64,4 +64,12 @@ Document.prototype.deleteSelection = function() {
 
 Document.prototype.moveSelection = function(deltaX, deltaY) {
 	this.undoStack.push(new MoveSelectionCommand(this.rawDoc, deltaX, deltaY));
+};
+
+Document.prototype.addConnection = function(input, output) {
+	this.undoStack.push(new AddConnectionCommand(this.rawDoc, input, output));
+};
+
+Document.prototype.removeConnection = function(input, output) {
+	this.undoStack.push(new RemoveConnectionCommand(this.rawDoc, input, output));
 };
