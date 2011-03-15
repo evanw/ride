@@ -86,3 +86,44 @@ SetSelectionCommand.prototype.mergeWith = function(command) {
 	}
 	return false;
 };
+
+////////////////////////////////////////////////////////////////////////////////
+
+function MoveSelectionCommand(doc, deltaX, deltaY) {
+	this.doc = doc;
+	this.deltaX = deltaX;
+	this.deltaY = deltaY;
+	this.positions = [];
+	for (var i = 0; i < this.doc.sel.length; i++) {
+		var node = this.doc.sel[i];
+		this.positions.push({
+			x: node.x,
+			y: node.y
+		});
+	}
+}
+
+MoveSelectionCommand.prototype.undo = function() {
+	for (var i = 0; i < this.doc.sel.length; i++) {
+		var node = this.doc.sel[i];
+		this.doc.updateNode(node, 'x', this.positions[i].x);
+		this.doc.updateNode(node, 'y', this.positions[i].y);
+	}
+};
+
+MoveSelectionCommand.prototype.redo = function() {
+	for (var i = 0; i < this.doc.sel.length; i++) {
+		var node = this.doc.sel[i];
+		this.doc.updateNode(node, 'x', this.positions[i].x + this.deltaX);
+		this.doc.updateNode(node, 'y', this.positions[i].y + this.deltaY);
+	}
+};
+
+MoveSelectionCommand.prototype.mergeWith = function(command) {
+	if (command instanceof MoveSelectionCommand) {
+		this.deltaX += command.deltaX;
+		this.deltaY += command.deltaY;
+		return true;
+	}
+	return false;
+};

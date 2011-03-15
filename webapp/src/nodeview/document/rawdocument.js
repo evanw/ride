@@ -9,6 +9,9 @@ RawDocument.prototype.fromJSON = function(json) {
 		return new Node().fromJSON(n);
 	});
 	this.sel = [];
+	for (var i = 0; i < this.nodes.length; i++) {
+		this.nodes[i].createElement();
+	}
 	return this;
 };
 

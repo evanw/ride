@@ -7,6 +7,17 @@ function Editor() {
 		new DraggingTool(this.doc),
 		new SelectionTool(this.doc)
 	];
+
+	this.doc.rawDoc.fromJSON({'nodes': [
+		{'inputs': [], 'x': 20, 'title': 'gscam', 'y': 20, 'outputs': [{'name': 'image'}], 'id': 0},
+		{'inputs': [{'name': 'image'}], 'x': 20, 'title': 'cmvision', 'y': 20, 'outputs': [{'name': 'blobs'}], 'id': 1},
+		{'inputs': [{'name': 'image'}], 'x': 20, 'title': 'ar_recog', 'y': 20, 'outputs': [{'name': 'tags'}], 'id': 2},
+		{'inputs': [{'name': 'blob_list'}], 'x': 20, 'title': 'merge_blobs', 'y': 20, 'outputs': [{'name': 'blob_list'}], 'id': 3},
+		{'inputs': [{'name': 'blob_list'}], 'x': 20, 'title': 'filter_blobs', 'y': 20, 'outputs': [{'name': 'orange_over_green'}, {'name': 'green_over_orange'}, {'name': 'orange'}, {'name': 'green'}, {'name': 'yellow'}, {'name': 'pink'}], 'id': 4},
+		{'inputs': [{'name': 'blob_list'}], 'x': 20, 'title': 'seek_objects', 'y': 20, 'outputs': [{'name': 'twist'}], 'id': 5},
+		{'inputs': [{'name': 'blob_list'}], 'x': 20, 'title': 'avoid_objects', 'y': 20, 'outputs': [{'name': 'twist'}], 'id': 6},
+		{'inputs': [{'name': 'twist'}], 'x': 20, 'title': 'irobot_create_2_1', 'y': 20, 'outputs': [], 'id': 7}
+	]});
 }
 
 Editor.prototype.drawLinks = function(c) {

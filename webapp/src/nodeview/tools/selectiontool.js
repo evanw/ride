@@ -24,6 +24,7 @@ SelectionTool.prototype.mousePressed = function(x, y) {
 	this.startY = y;
 	this.element.style.display = 'block';
 	this.updateElement(x, y);
+	this.doc.undoStack.beginBatch();
 	return true;
 };
 
@@ -33,4 +34,5 @@ SelectionTool.prototype.mouseDragged = function(x, y) {
 
 SelectionTool.prototype.mouseReleased = function(x, y) {
 	this.element.style.display = 'none';
+	this.doc.undoStack.endBatch();
 };

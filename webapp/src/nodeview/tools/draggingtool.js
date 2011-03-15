@@ -48,14 +48,7 @@ DraggingTool.prototype.mousePressed = function(x, y) {
 DraggingTool.prototype.mouseDragged = function(x, y) {
 	x = Math.max(x, this.minX);
 	y = Math.max(y, this.minY);
-	var dx = x - this.oldX;
-	var dy = y - this.oldY;
-	var sel = this.doc.getSelection();
-	for (var i = 0; i < sel.length; i++) {
-		var node = sel[i];
-		this.doc.updateNode(node, 'x', node.x + dx);
-		this.doc.updateNode(node, 'y', node.y + dy);
-	}
+	this.doc.moveSelection(x - this.oldX, y - this.oldY);
 	this.oldX = x;
 	this.oldY = y;
 };

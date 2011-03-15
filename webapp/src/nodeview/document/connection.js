@@ -1,6 +1,7 @@
 function Connection(parent) {
 	this.parent = parent;
 	this.name = '';
+	this.id = 0;
 	this.connections = [];
 	this.element = null;
 	this.rect = null;
@@ -8,14 +9,20 @@ function Connection(parent) {
 
 Connection.prototype.fromJSON = function(json) {
 	this.name = json.name;
+	this.id = json.id;
 	this.connections = []; // this will be set later, after we have read all nodes
 	return this;
 };
 
 Connection.prototype.toJSON = function() {
 	return {
-		name: this.name
-		// TODO: how to store connections?
+		name: this.name,
+		connections: this.connections.map(function(c) {
+			return {
+				nodeID: c.parent.id,
+				connectionID: c.id
+			};
+		})
 	};
 };
 

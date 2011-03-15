@@ -61,3 +61,7 @@ Document.prototype.deleteSelection = function() {
 		this.undoStack.push(new RemoveNodeCommand(this.rawDoc, this.rawDoc.sel[0]));
 	}
 };
+
+Document.prototype.moveSelection = function(deltaX, deltaY) {
+	this.undoStack.push(new MoveSelectionCommand(this.rawDoc, deltaX, deltaY));
+};
