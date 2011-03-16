@@ -102,15 +102,38 @@ Editor.prototype.onUpdateNodeMessage = function(json) {
 	var nodes = this.doc.getNodes();
 	for (var i = 0; i < nodes.length; i++) {
 		var node = nodes[i];
-		if (node.id !== json.id) continue;
-		for (var name in json) {
-			// Connections aren't updated using the update channel
-			if (name != 'id' && name != 'inputs' && name != 'outputs') {
-				this.doc.updateNode(node, name, json[name]);
+		if (node.id === json.id) {
+			for (var name in json) {
+				// Connections (inputs and outputs) aren't updated using the update channel
+				// We also don't want to change the node id!
+				if (name != 'id' && name != 'inputs' && name != 'outputs') {
+					this.doc.updateNode(node, name, json[name]);
+				}
 			}
+			break;
 		}
 	}
 	this.draw();
+};
+
+Editor.prototype.onAddNodeMessage = function(json) {
+};
+
+Editor.prototype.onRemoveNodeMessage = function(json) {
+	var nodes = this.doc.getNodes();
+	for (var i = 0; i < nodes.length; i++) {
+		var node = nodes[i];
+		if (node.id === json.id) {
+			this.doc.removeNode(node);
+			break;
+		}
+	}
+};
+
+Editor.prototype.onAddConnectionMessage = function(json) {
+};
+
+Editor.prototype.onRemoveConnectionMessage = function(json) {
 };
 
 Editor.prototype.onSetNodesMessage = function(json) {
@@ -128,6 +151,18 @@ Editor.prototype.setProjectName = function(projectName) {
 		updateChannel.disable();
 		this_.onUpdateNodeMessage(json);
 		updateChannel.enable();
+	});
+	channel('project', projectName, 'node', 'add').subscribe(function(json) {
+		this_.onAddNodeMessage(json);
+	});
+	channel('project', projectName, 'node', 'remove').subscribe(function(json) {
+		this_.onRemoveNodeMessage(json);
+	});
+	channel('project', projectName, 'node', 'connect').subscribe(function(json) {
+		this_.onAddConnectionMessage(json);
+	});
+	channel('project', projectName, 'node', 'disconnect').subscribe(function(json) {
+		this_.onRemoveConnectionMessage(json);
 	});
 
 	// poll until we get the node list

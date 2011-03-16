@@ -7,26 +7,26 @@ class Connection:
 
     def to_dict(self):
         return {
-            'id': self.id,
+            'id': str(self.id),
             'type': self.type,
             'name': self.name,
-            'connections': self.connections
+            'connections': map(str, self.connections)
         }
 
     def from_dict(self, d):
         if 'id' in d:
-            self.id = d['id']
+            self.id = str(d['id'])
         if 'type' in d:
             self.type = d['type']
         if 'name' in d:
             self.name = d['name']
         if 'connections' in d:
-            self.connections = d['connections']
+            self.connections = map(str, d['connections'])
         return self # allow chaining
 
 class Node:
     def __init__(self):
-        self.id = 0 # TODO: increment next node id
+        self.id = ''
         self.x = 0
         self.y = 0
         self.name = ''
@@ -37,7 +37,7 @@ class Node:
 
     def to_dict(self):
         return {
-            'id': self.id,
+            'id': str(self.id),
             'x': self.x,
             'y': self.y,
             'name': self.name,
@@ -48,7 +48,7 @@ class Node:
 
     def from_dict(self, d):
         self.update(d)
-        self.id = d['id']
+        self.id = str(d['id'])
         self.inputs = [Connection().from_dict(i) for i in d['inputs']]
         self.outputs = [Connection().from_dict(o) for o in d['outputs']]
         #self.type = d['type']

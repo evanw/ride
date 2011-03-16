@@ -13,12 +13,24 @@ class ProjectServer(Listener):
         self.project = Project(path)
         self.subscribe('project', self.project.name, 'nodes', 'request')
         self.subscribe('project', self.project.name, 'node', 'update')
+        self.subscribe('project', self.project.name, 'node', 'add')
+        self.subscribe('project', self.project.name, 'node', 'remove')
+        self.subscribe('project', self.project.name, 'node', 'connect')
+        self.subscribe('project', self.project.name, 'node', 'disconnect')
 
     def on_message(self, channel, data):
         if channel == ('project', self.project.name, 'nodes', 'request'):
             self.publish(('project', self.project.name, 'nodes', 'response'), self.project.to_dict())
         elif channel == ('project', self.project.name, 'node', 'update'):
             self.project.update_node(data)
+        elif channel == ('project', self.project.name, 'node', 'add'):
+            self.project.add_node(data)
+        elif channel == ('project', self.project.name, 'node', 'remove'):
+            self.project.remove_node(data)
+        elif channel == ('project', self.project.name, 'node', 'connect'):
+            self.project.add_connection(data)
+        elif channel == ('project', self.project.name, 'node', 'disconnect'):
+            self.project.remove_connection(data)
 
 class ProjectManagerServer(Listener):
     def __init__(self):

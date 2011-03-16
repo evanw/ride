@@ -1,129 +1,129 @@
 nodes:
-- id: 0
+- id: '0'
   inputs: []
   name: gscam
   outputs:
-  - connections: [1, 3]
-    id: 0
+  - connections: ['1', '3']
+    id: '0'
     name: image
     type: null
   type: null
   x: 30
   y: 61
-- id: 1
+- id: '1'
   inputs:
-  - connections: []
-    id: 1
+  - connections: ['0']
+    id: '1'
     name: image
     type: null
   name: cmvision
   outputs:
-  - connections: [5]
-    id: 2
+  - connections: ['5']
+    id: '2'
     name: blobs
     type: null
   type: null
   x: 205
   y: 127
-- id: 2
+- id: '2'
   inputs:
-  - connections: []
-    id: 3
+  - connections: ['0']
+    id: '3'
     name: image
     type: null
   name: ar_recog
   outputs:
   - connections: []
-    id: 4
+    id: '4'
     name: tags
     type: null
   type: null
   x: 275
   y: 30
-- id: 3
+- id: '3'
   inputs:
-  - connections: []
-    id: 5
+  - connections: ['2']
+    id: '5'
     name: blob_list
     type: null
   name: merge_blobs
   outputs:
-  - connections: [7]
-    id: 6
+  - connections: ['7']
+    id: '6'
     name: blob_list
     type: null
   type: null
   x: 347
   y: 227
-- id: 4
+- id: '4'
   inputs:
-  - connections: []
-    id: 7
+  - connections: ['6']
+    id: '7'
     name: blob_list
     type: null
   name: filter_blobs
   outputs:
   - connections: []
-    id: 8
+    id: '8'
     name: orange_over_green
     type: null
-  - connections: [14]
-    id: 9
+  - connections: ['14']
+    id: '9'
     name: green_over_orange
     type: null
   - connections: []
-    id: 10
+    id: '10'
     name: orange
     type: null
-  - connections: [16]
-    id: 11
+  - connections: ['16']
+    id: '11'
     name: green
     type: null
   - connections: []
-    id: 12
+    id: '12'
     name: yellow
     type: null
   - connections: []
-    id: 13
+    id: '13'
     name: pink
     type: null
   type: null
-  x: 804
-  y: 319
-- id: 5
+  x: 505
+  y: 78
+- id: '5'
   inputs:
-  - connections: []
-    id: 14
+  - connections: ['9']
+    id: '14'
     name: blob_list
     type: null
   name: seek_objects
   outputs:
-  - connections: [18]
-    id: 15
+  - connections: ['18']
+    id: '15'
     name: twist
     type: null
   type: null
   x: 752
   y: 30
-- id: 6
+- id: '6'
   inputs:
-  - connections: []
-    id: 16
+  - connections: ['11']
+    id: '16'
     name: blob_list
     type: null
   name: avoid_objects
   outputs:
-  - connections: [18]
-    id: 17
+  - connections: ['18']
+    id: '17'
     name: twist
     type: null
   type: null
   x: 763
   y: 177
-- id: 7
+- id: '7'
   inputs:
-  - connections: []
-    id: 18
+  - connections: ['15', '17']
+    id: '18'
     name: twist
     type: null
   name: irobot_create_2_1

@@ -33,7 +33,7 @@ RawDocument.prototype.removeNode = function(node) {
 	for (var i = 0; i < node.inputs.length; i++) {
 		var input = node.inputs[i];
 		for (var j = 0; j < input.connections.length; j++) {
-			input.outputs[j].disconnectFrom(input);
+			input.connections[j].disconnectFrom(input);
 		}
 	}
 	for (var i = 0; i < node.outputs.length; i++) {
@@ -46,10 +46,19 @@ RawDocument.prototype.removeNode = function(node) {
 	this.sel.removeOnce(node);
 	this.nodes.removeOnce(node);
 	node.deleteElement();
+
+	channel('project', projectName, 'node', 'remove').publish({
+		id: node.id
+	});
 };
 
 RawDocument.prototype.updateNode = function(node, name, value) {
 	node.update(name, value);
+
+	// Only send the property that changed, not the whole node
+	var json = { id: node.id };
+	json[name] = value;
+	channel('project', projectName, 'node', 'update').publish(json);
 };
 
 RawDocument.prototype.setSelection = function(sel) {
@@ -64,8 +73,16 @@ RawDocument.prototype.setSelection = function(sel) {
 
 RawDocument.prototype.addConnection = function(input, output) {
 	input.connectTo(output);
+	channel('project', projectName, 'node', 'disconnect').publish({
+		input: input.id,
+		output: output.id
+	});
 };
 
 RawDocument.prototype.removeConnection = function(input, output) {
 	input.disconnectFrom(output);
+	channel('project', projectName, 'node', 'disconnect').publish({
+		input: input.id,
+		output: output.id
+	});
 };

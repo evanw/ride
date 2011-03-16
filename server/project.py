@@ -7,7 +7,6 @@ class Project:
         self.name = os.path.basename(path)
         self.setPath(path)
         self.nodes = []
-        self.next_id = 0
         self.load()
         
     def setPath(self, p):
@@ -25,6 +24,20 @@ class Project:
                 n.update(json)
                 break
         self.save()
+
+    def add_node(self, json):
+        pass
+
+    def remove_node(self, json):
+        self.nodes = [n for n in self.nodes if n.id != json['id']]
+        self.remove_invalid_connections()
+        self.save()
+
+    def add_connection(self, json):
+        pass
+
+    def remove_connection(self, json):
+        pass
         
     def to_dict(self):
         return {
@@ -39,9 +52,35 @@ class Project:
     def load(self):
         yml = yaml.safe_load(file(self.project_file_path, 'r'))
         self.nodes = [Node().from_dict(n) for n in yml['nodes']]
-        self.next_id = max(n.id for n in self.nodes) + 1
+        self.remove_invalid_connections()
+        self.save()
+
+    def remove_invalid_connections(self):
+        valid_input_ids = dict((c.id, c) for n in self.nodes for c in n.inputs)
+        valid_output_ids = dict((c.id, c) for n in self.nodes for c in n.outputs)
         
-    def getNextId(self):
-        i = self.next_id
-        self.next_id += 1
-        return i
+        # remove all inputs and outputs with invalid connection ids
+        for node in self.nodes:
+            for i in node.inputs:
+                for id in i.connections[:]:
+                    if id not in valid_output_ids:
+                        print 'warning: removing %s->%s from %s.%s (%s is an invalid output id)' % (i.id, id, node.name, i.name, id)
+                        i.connections.remove(id)
+            for o in node.outputs:
+                for id in o.connections[:]:
+                    if id not in valid_input_ids:
+                        print 'warning: removing %s->%s from %s.%s (%s is an invalid input id)' % (o.id, id, node.name, o.name, id)
+                        o.connections.remove(id)
+        
+        # remove all inputs and outputs that don't reference each other
+        for node in self.nodes:
+            for i in node.inputs:
+                for id in i.connections[:]:
+                    if i.id not in valid_output_ids[id].connections:
+                        print 'warning: removing %s->%s from %s.%s (%s didn\'t point back to %s)' % (i.id, id, node.name, i.name, id, i.id)
+                        i.connections.remove(id)
+            for o in node.outputs:
+                for id in o.connections[:]:
+                    if o.id not in valid_input_ids[id].connections:
+                        print 'warning: removing %s->%s from %s.%s (%s didn\'t point back to %s)' % (o.id, id, node.name, o.name, id, o.id)
+                        o.connections.remove(id)
