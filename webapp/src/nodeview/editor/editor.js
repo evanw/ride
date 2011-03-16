@@ -96,6 +96,22 @@ Editor.prototype.insertNode = function(json) {
 Editor.prototype.setProjectName = function(projectName) {
 	window.projectName = projectName;
 
+	// subscribe to node updates
+	var this_ = this;
+	channel('project', projectName, 'node', 'update').subscribe(function(json) {
+		var nodes = this_.doc.getNodes();
+		for (var i = 0; i < nodes.length; i++) {
+			var node = nodes[i];
+			if (node.id !== json.id) continue;
+			for (var name in json) {
+				// TODO: what to do about connections?
+				if (name != 'id' && name != 'inputs' && name != 'outputs') {
+					this_.doc.updateNode(node, name, json[name]);
+				}
+			}
+		}
+	});
+
 	// poll until we get the node list
 	var this_ = this;
 	this.gotNodes = false;
