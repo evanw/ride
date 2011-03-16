@@ -1,3 +1,5 @@
+import os
+import yaml
 from node import Node
 
 class Project:
@@ -6,6 +8,7 @@ class Project:
         self.setPath(path)
         self.nodes = []
         self.next_id = 0
+        self.load()
         
     def setPath(self, p):
         self.path = p
