@@ -44,6 +44,8 @@ Node.prototype.update = function(name, value) {
 	this.generateHTML();
 	this.updateRects();
 	this.hidePopup();
+	
+	channel('project', projectName, 'node', 'update').publish(this.toJSON());
 };
 
 Node.prototype.generatePopupHTML = function() {

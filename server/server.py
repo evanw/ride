@@ -12,6 +12,7 @@ class ProjectServer(Listener):
     def __init__(self, path):
         self.project = Project(path)
         self.subscribe('project', self.project.name, 'nodes', 'request')
+        self.subscribe('project', self.project.name, 'node', 'update')
 
     def on_message(self, channel, data):
         if channel == ('project', self.project.name, 'nodes', 'request'):

@@ -97,12 +97,12 @@ Editor.prototype.insertNode = function(json) {
 };
 
 Editor.prototype.setProjectName = function(projectName) {
-	this.projectName = projectName;
+	window.projectName = projectName;
 
 	// poll until we get the node list
 	var this_ = this;
 	this.gotNodes = false;
-	channel('project', this.projectName, 'nodes', 'response').subscribe(function(data) {
+	channel('project', projectName, 'nodes', 'response').subscribe(function(data) {
 		if (!this_.gotNodes) {
 			this_.doc.fromJSON(data);
 			this_.gotNodes = true;
@@ -110,6 +110,6 @@ Editor.prototype.setProjectName = function(projectName) {
 		}
 	});
 	var interval = setInterval(function() {
-		channel('project', this_.projectName, 'nodes', 'request').publish({});
+		channel('project', projectName, 'nodes', 'request').publish({});
 	}, 100);
 };

@@ -39,7 +39,6 @@ Document.prototype.fromJSON = function(json) {
 		});
 	});
 
-	console.log(nodes, connections);
 	this.rawDoc.nodes = nodes;
 	this.rawDoc.sel = [];
 	this.undoStack = new UndoStack();
