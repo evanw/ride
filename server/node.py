@@ -55,3 +55,19 @@ class Node:
         self.outputs = [Connection().from_dict(o) for o in d['outputs']]
         #self.type = d['type']
         return self # allow chaining
+
+
+    def diff(self, other):
+        if self.id is not other.id:
+            return True
+        if self.x is not other.x:
+            return True
+        if self.y is not other.y:
+            return True
+        if self.name is not other.name:
+            return True
+        if self.inputs is not other.inputs:
+            return True
+        if self.outputs is not other.outputs:
+            return True
+        return False

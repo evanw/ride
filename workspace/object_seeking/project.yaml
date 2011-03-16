@@ -88,8 +88,8 @@ nodes:
     name: pink
     type: null
   type: null
-  x: 499
-  y: 73
+  x: 804
+  y: 319
 - id: 5
   inputs:
   - connections: []

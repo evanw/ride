@@ -45,3 +45,8 @@ class Project:
         i = self.next_id
         self.next_id += 1
         return i
+
+    def diff_node(self, node):
+        for i, n in enumerate(self.nodes):
+            if n.id == node.id:
+                return self.nodes[i].diff(node)
