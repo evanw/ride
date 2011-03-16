@@ -98,7 +98,9 @@ Editor.prototype.setProjectName = function(projectName) {
 
 	// subscribe to node updates
 	var this_ = this;
-	channel('project', projectName, 'node', 'update').subscribe(function(json) {
+	var updateChannel = channel('project', projectName, 'node', 'update');
+	updateChannel.subscribe(function(json) {
+		updateChannel.disable();
 		var nodes = this_.doc.getNodes();
 		for (var i = 0; i < nodes.length; i++) {
 			var node = nodes[i];
@@ -110,6 +112,7 @@ Editor.prototype.setProjectName = function(projectName) {
 				}
 			}
 		}
+		updateChannel.enable();
 	});
 
 	// poll until we get the node list

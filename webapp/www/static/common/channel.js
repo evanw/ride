@@ -6,6 +6,7 @@ window.channel = (function() {
 	function Container() {
 		this.map = {};
 		this.callbacks = [];
+		this.disabled = false;
 	}
 	
 	Container.prototype.lookup = function(names, index) {
@@ -57,13 +58,25 @@ window.channel = (function() {
 		root.lookup(this.name).unsubscribe(callback);
 	};
 
+	// TODO: this doesn't send to other subscribers on the same machine
+	var ignoreMessageIDs = {};
 	Channel.prototype.publish = function(data) {
-		if (socket) {
+		if (socket && !root.lookup(this.name).disabled) {
+			data.message_id = Math.random();
+			ignoreMessageIDs[data.message_id] = true;
 			socket.send(JSON.stringify({
 				'channel': this.name,
 				'data': data
 			}));
 		}
+	};
+	
+	Channel.prototype.disable = function() {
+		root.lookup(this.name).disabled = true;
+	};
+
+	Channel.prototype.enable = function() {
+		root.lookup(this.name).disabled = false;
 	};
 	
 	////////////////////////////////////////////////////////////////////////////////
@@ -85,7 +98,16 @@ window.channel = (function() {
 		});
 		socket.on('message', function(data) {
 			var json = JSON.parse(data);
-			root.lookup(json['channel']).publish(json['data']);
+			
+			// temporary hack: ignore all messages we've already sent for one second
+			if ('message_id' in json['data'] && json['data'].message_id in ignoreMessageIDs) {
+				console.log('ignored message with id', json['data'].message_id);
+				setTimeout(function() {
+					delete ignoreMessageIDs[json['data'].message_id];
+				}, 20 * 1000);
+			} else {
+				root.lookup(json['channel']).publish(json['data']);
+			}
 		});
 		socket.connect();
 	});
