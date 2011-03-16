@@ -18,11 +18,7 @@ class ProjectServer(Listener):
         if channel == ('project', self.project.name, 'nodes', 'request'):
             self.publish(('project', self.project.name, 'nodes', 'response'), self.project.to_dict())
         elif channel == ('project', self.project.name, 'node', 'update'):
-            node = Node().from_dict(data)
-            if not self.project.diff_node(node):
-                return
-            self.project.update_node(Node().from_dict(data))
-            self.publish(('project', self.project.name, 'node', 'update'), data)
+            self.project.update_node(data)
 
 class ProjectManagerServer(Listener):
     def __init__(self):
@@ -35,6 +31,7 @@ class ProjectManagerServer(Listener):
 
 # this will handle requests on a separate thread
 pms = ProjectManagerServer()
+
 # serve website on main thread
 import staticfileserver
 staticfileserver.serve_forever(8000)

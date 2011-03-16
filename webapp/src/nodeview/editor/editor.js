@@ -79,18 +79,43 @@ Editor.prototype.selectAll = function() {
 
 Editor.prototype.undo = function() {
 	this.doc.undoStack.undo();
+	this.draw();
 };
 
 Editor.prototype.redo = function() {
 	this.doc.undoStack.redo();
+	this.draw();
 };
 
 Editor.prototype.deleteSelection = function() {
 	this.doc.deleteSelection();
+	this.draw();
 };
 
 Editor.prototype.insertNode = function(json) {
+	json['id'] = Math.random().toString().substr(2);
 	this.doc.addNode(new Node().fromJSON(json));
+	this.draw();
+};
+
+Editor.prototype.onUpdateNodeMessage = function(json) {
+	var nodes = this.doc.getNodes();
+	for (var i = 0; i < nodes.length; i++) {
+		var node = nodes[i];
+		if (node.id !== json.id) continue;
+		for (var name in json) {
+			// Connections aren't updated using the update channel
+			if (name != 'id' && name != 'inputs' && name != 'outputs') {
+				this.doc.updateNode(node, name, json[name]);
+			}
+		}
+	}
+	this.draw();
+};
+
+Editor.prototype.onSetNodesMessage = function(json) {
+	this.doc.fromJSON(json);
+	this.draw();
 };
 
 Editor.prototype.setProjectName = function(projectName) {
@@ -101,26 +126,16 @@ Editor.prototype.setProjectName = function(projectName) {
 	var updateChannel = channel('project', projectName, 'node', 'update');
 	updateChannel.subscribe(function(json) {
 		updateChannel.disable();
-		var nodes = this_.doc.getNodes();
-		for (var i = 0; i < nodes.length; i++) {
-			var node = nodes[i];
-			if (node.id !== json.id) continue;
-			for (var name in json) {
-				// TODO: what to do about connections?
-				if (name != 'id' && name != 'inputs' && name != 'outputs') {
-					this_.doc.updateNode(node, name, json[name]);
-				}
-			}
-		}
+		this_.onUpdateNodeMessage(json);
 		updateChannel.enable();
 	});
 
 	// poll until we get the node list
 	var this_ = this;
 	this.gotNodes = false;
-	channel('project', projectName, 'nodes', 'response').subscribe(function(data) {
+	channel('project', projectName, 'nodes', 'response').subscribe(function(json) {
 		if (!this_.gotNodes) {
-			this_.doc.fromJSON(data);
+			this_.onSetNodesMessage(json);
 			this_.gotNodes = true;
 			clearInterval(interval);
 		}

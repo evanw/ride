@@ -71,6 +71,7 @@ NodeLinkTool.prototype.mousePressed = function(x, y) {
 		if (input != null && input.connections.length > 0) {
 			this.output = input.connections[0];
 			this.doc.removeConnection(input, this.output);
+			editor.draw();
 		}
 	}
 
@@ -95,5 +96,6 @@ NodeLinkTool.prototype.mouseReleased = function(x, y) {
 	var input = this.getInputFromPoint(x, y);
 	if (input != null) {
 		this.doc.addConnection(input, this.output);
+		editor.draw();
 	}
 };

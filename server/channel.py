@@ -2,6 +2,8 @@ import io
 import json
 import threading
 
+debug = True
+
 class _Server(io.Server, threading.Thread):
     def __init__(self):
         io.Server.__init__(self)
@@ -9,7 +11,17 @@ class _Server(io.Server, threading.Thread):
         self.map = {}
 
     def on_message(self, client, data):
+        if debug:
+            print '--- received ----'
+            print data
         data = json.loads(data)
+        
+        # broadcast messages received from one client to the others
+        for session in self.clients:
+            if session != client.session:
+                self.clients[session].send(json.dumps(data))
+        
+        # notify all local handlers of the new message
         self.publish(tuple(data['channel']), data['data'], self)
 
     def subscribe(self, listener, channel):
@@ -24,12 +36,19 @@ class _Server(io.Server, threading.Thread):
                 del self.map[channel]
 
     def publish(self, channel, data, listener_to_ignore):
+        # Send message to everyone except listener_to_ignore
         if channel in self.map:
             for listener in self.map[channel]:
                 if listener_to_ignore != listener:
                     listener.on_message(channel, data)
+        
+        # Send to clients if the message didn't originate from the server
         if listener_to_ignore != self:
-            self.broadcast(json.dumps({ 'channel': channel, 'data': data }))
+            data = json.dumps({ 'channel': channel, 'data': data })
+            self.broadcast(data)
+            if debug:
+                print '--- sent ----'
+                print data
 
 _server = _Server()
 

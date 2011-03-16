@@ -10,7 +10,8 @@ function Connection(parent) {
 Connection.prototype.fromJSON = function(json) {
 	this.name = json.name;
 	this.id = json.id;
-	this.connections = json.connections; // will be remapped from list of ids to list of Connection objects after this
+	this._json_ids = json.connections; // will be remapped from list of ids to list of Connection objects after this
+	this.connections = [];
 	return this;
 };
 

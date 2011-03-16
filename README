@@ -4,4 +4,11 @@ To run the server:
 
 TODO:
 
-		Broadcast channel to fix echo problem, don't send all movements while dragging because it'll mess up the undo stack.
+    Broadcast channel to fix echo problem, don't send all movements while dragging because it'll mess up the undo stack.
+
+Installation:
+
+    node.js
+    socket.io
+    pyyaml
+    json module (needs python2.6+)

@@ -47,27 +47,14 @@ class Node:
         }
 
     def from_dict(self, d):
+        self.update(d)
         self.id = d['id']
-        self.x = d['x']
-        self.y = d['y']
-        self.name = d['name']
         self.inputs = [Connection().from_dict(i) for i in d['inputs']]
         self.outputs = [Connection().from_dict(o) for o in d['outputs']]
         #self.type = d['type']
         return self # allow chaining
 
-
-    def diff(self, other):
-        if self.id is not other.id:
-            return True
-        if self.x is not other.x:
-            return True
-        if self.y is not other.y:
-            return True
-        if self.name is not other.name:
-            return True
-        if self.inputs is not other.inputs:
-            return True
-        if self.outputs is not other.outputs:
-            return True
-        return False
+    def update(self, d):
+        if 'x' in d: self.x = d['x']
+        if 'y' in d: self.y = d['y']
+        if 'name' in d: self.name = d['name']

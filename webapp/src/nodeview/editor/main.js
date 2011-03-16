@@ -1,8 +1,5 @@
 var editor;
-
-setInterval(function() {
-	if (editor) editor.draw();
-}, 50);
+var projectName;
 
 $(window).load(function() {
 	var context = $('#canvas')[0].getContext('2d');

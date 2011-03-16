@@ -28,13 +28,13 @@ Document.prototype.fromJSON = function(json) {
 	});
 	nodes.map(function(node) {
 		node.inputs.map(function(input) {
-			input.connections = input.connections.map(function(id) {
-				return connections[id];
+			input._json_ids.map(function(id) {
+				input.connectTo(connections[id]);
 			});
 		});
 		node.outputs.map(function(output) {
-			output.connections = output.connections.map(function(id) {
-				return connections[id];
+			output._json_ids.map(function(id) {
+				output.connectTo(connections[id]);
 			});
 		});
 	});
@@ -93,10 +93,6 @@ Document.prototype.deleteSelection = function() {
 	while (this.rawDoc.sel.length > 0) {
 		this.undoStack.push(new RemoveNodeCommand(this.rawDoc, this.rawDoc.sel[0]));
 	}
-};
-
-Document.prototype.moveSelection = function(deltaX, deltaY) {
-	this.undoStack.push(new MoveSelectionCommand(this.rawDoc, deltaX, deltaY));
 };
 
 Document.prototype.addConnection = function(input, output) {

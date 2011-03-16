@@ -1,31 +1,33 @@
 window.channel = (function() {
+	var map = {};
+	var socket = null;
+
+	function lookup(names) {
+		var name = JSON.stringify(names);
+		if (!map.hasOwnProperty(name)) {
+			map[name] = new Channel();
+		}
+		return map[name];
+	}
+
 	////////////////////////////////////////////////////////////////////////////////
-	// Container
+	// Channel
+	// 
+	// A permanent object that is created once for each channel and stored in map,
+	// which is a map of channel lists (as JSON strings) to Channel objects. This
+	// mapping is automatically done by the lookup() function above.
 	////////////////////////////////////////////////////////////////////////////////
 
-	function Container() {
-		this.map = {};
+	function Channel() {
 		this.callbacks = [];
 		this.disabled = false;
 	}
 	
-	Container.prototype.lookup = function(names, index) {
-		index = index || 0;
-		if (index >= names.length) {
-			return this;
-		}
-		var name = names[index];
-		if (!this.map.hasOwnProperty(name)) {
-			this.map[name] = new Container();
-		}
-		return this.map[name].lookup(names, index + 1);
-	};
-	
-	Container.prototype.subscribe = function(callback) {
+	Channel.prototype.subscribe = function(callback) {
 		this.callbacks.push(callback);
 	};
 	
-	Container.prototype.unsubscribe = function(callback) {
+	Channel.prototype.unsubscribe = function(callback) {
 		for (var i = 0; i < this.callbacks.length; i++) {
 			if (this.callbacks[i] == callback) {
 				this.callbacks.splice(i--, 1);
@@ -33,54 +35,62 @@ window.channel = (function() {
 		}
 	};
 
-	Container.prototype.publish = function(data) {
+	Channel.prototype.publish = function(data) {
 		for (var i = 0; i < this.callbacks.length; i++) {
 			this.callbacks[i](data);
 		}
 	};
 
-	var root = new Container();
-	var socket = null;
-
 	////////////////////////////////////////////////////////////////////////////////
-	// Channel
+	// Helper
+	// 
+	// A temporary object that exists to wrap the permanent channel objects above.
+	// This is the object returned by the public channel() function.
 	////////////////////////////////////////////////////////////////////////////////
 
-	function Channel(name) {
-		this.name = name;
+	function Helper(names) {
+		this.names = names;
 	}
 
-	Channel.prototype.subscribe = function(callback) {
-		root.lookup(this.name).subscribe(callback);
+	Helper.prototype.subscribe = function(callback) {
+		lookup(this.names).subscribe(callback);
 	};
 
-	Channel.prototype.unsubscribe = function(callback) {
-		root.lookup(this.name).unsubscribe(callback);
+	Helper.prototype.unsubscribe = function(callback) {
+		lookup(this.names).unsubscribe(callback);
 	};
 
-	// TODO: this doesn't send to other subscribers on the same machine
-	var ignoreMessageIDs = {};
-	Channel.prototype.publish = function(data) {
-		if (socket && !root.lookup(this.name).disabled) {
-			data.message_id = Math.random();
-			ignoreMessageIDs[data.message_id] = true;
+	Helper.prototype.publish = function(data) {
+		// Is publishing disabled?
+		if (lookup(this.names).disabled) return;
+		
+		// Send to other subscribers in this browser window
+		lookup(this.names).publish(data);
+		
+		// Send to the server
+		if (socket) {
 			socket.send(JSON.stringify({
-				'channel': this.name,
+				'channel': this.names,
 				'data': data
 			}));
 		}
 	};
 	
-	Channel.prototype.disable = function() {
-		root.lookup(this.name).disabled = true;
+	Helper.prototype.disable = function() {
+		lookup(this.names).disabled = true;
 	};
 
-	Channel.prototype.enable = function() {
-		root.lookup(this.name).disabled = false;
+	Helper.prototype.enable = function() {
+		lookup(this.names).disabled = false;
 	};
 	
 	////////////////////////////////////////////////////////////////////////////////
 	// socket.io
+	// 
+	// This keeps one connection to the server open at all times, which is
+	// automatically connected when the page loads.
+	// 
+	// TODO: thorough testing with dropped connections
 	////////////////////////////////////////////////////////////////////////////////
 
 	var port = 5000;
@@ -91,28 +101,19 @@ window.channel = (function() {
 
 		socket = new io.Socket(document.location.hostname, { 'port': port });
 		socket.on('connect', function() {
-			root.lookup(['server', 'status']).publish({ 'status': 'connected' });
+			lookup(['server', 'status']).publish({ 'status': 'connected' });
 		});
 		socket.on('disconnect', function() {
-			root.lookup(['server', 'status']).publish({ 'status': 'disconnected' });
+			lookup(['server', 'status']).publish({ 'status': 'disconnected' });
 		});
 		socket.on('message', function(data) {
 			var json = JSON.parse(data);
-			
-			// temporary hack: ignore all messages we've already sent for one second
-			if ('message_id' in json['data'] && json['data'].message_id in ignoreMessageIDs) {
-				console.log('ignored message with id', json['data'].message_id);
-				setTimeout(function() {
-					delete ignoreMessageIDs[json['data'].message_id];
-				}, 20 * 1000);
-			} else {
-				root.lookup(json['channel']).publish(json['data']);
-			}
+			lookup(json['channel']).publish(json['data']);
 		});
 		socket.connect();
 	});
 
 	return function() {
-		return new Channel(Array.prototype.slice.call(arguments));
+		return new Helper(Array.prototype.slice.call(arguments));
 	};
 })();

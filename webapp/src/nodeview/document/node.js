@@ -47,7 +47,9 @@ Node.prototype.update = function(name, value) {
 		this.hidePopup();
 
 		// TODO: support partial dictionaries
-		channel('project', projectName, 'node', 'update').publish(this.toJSON());
+		var json = { id: this.id };
+		json[name] = value;
+		channel('project', projectName, 'node', 'update').publish(json);
 	}
 };
 

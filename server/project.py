@@ -19,10 +19,10 @@ class Project:
         self.nodes.append(node)
         self.save()
 
-    def update_node(self, node):
-        for i, n in enumerate(self.nodes):
-            if n.id == node.id:
-                self.nodes[i] = node
+    def update_node(self, json):
+        for n in self.nodes:
+            if n.id == json['id']:
+                n.update(json)
                 break
         self.save()
         
@@ -45,8 +45,3 @@ class Project:
         i = self.next_id
         self.next_id += 1
         return i
-
-    def diff_node(self, node):
-        for i, n in enumerate(self.nodes):
-            if n.id == node.id:
-                return self.nodes[i].diff(node)
