@@ -1,6 +1,8 @@
+var editor;
+
 $(window).load(function() {
 	var context = $('#canvas')[0].getContext('2d');
-	var editor = new Editor(context);
+	editor = new Editor(context);
 
 	// need to preventDefault() here instead of mousedown because we
 	// still want mousedown to move keyboard focus into the iframe

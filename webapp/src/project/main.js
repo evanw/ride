@@ -2,6 +2,9 @@ $(window).load(function() {
 	var editor = $('iframe')[0].contentWindow.editor;
 	$('iframe').focus();
 
+	var projectName = /^\/project\/(\w+)\/?$/.exec(location.pathname)[1];
+	editor.setProjectName(projectName);
+
 	var contents = [
 		new Toolbar.Button('Settings', '/static/images/settings.png').floatRight(),
 		new Toolbar.Button('ROS Node', '/static/images/rosnode.png').click(function() {
