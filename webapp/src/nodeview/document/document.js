@@ -11,6 +11,17 @@ Document.prototype.getSelection = function() {
 	return this.rawDoc.sel;
 };
 
+Document.prototype.fromJSON = function(json) {
+	this.rawDoc.nodes = json.nodes.map(function(n) {
+		var node = new Node();
+		node.fromJSON(n);
+		node.createElement();
+		return node;
+	});
+	this.rawDoc.sel = [];
+	this.undoStack = new UndoStack();
+};
+
 Document.prototype.getNodesInRect = function(rect) {
 	var nodes = [];
 	for (var i = 0; i < this.rawDoc.nodes.length; i++) {
