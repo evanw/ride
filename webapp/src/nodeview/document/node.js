@@ -2,7 +2,7 @@ function Node() {
 	this.x = 0;
 	this.y = 0;
 	this.id = 0;
-	this.title = '';
+	this.name = '';
 	this.inputs = [];
 	this.outputs = [];
 	this.rect = null;
@@ -14,7 +14,7 @@ Node.prototype.fromJSON = function(json) {
 	this.x = json.x;
 	this.y = json.y;
 	this.id = json.id;
-	this.title = json.title;
+	this.name = json.name;
 	this.inputs = json.inputs.map(function(i) {
 		return new Connection(this).fromJSON(i);
 	});
@@ -29,7 +29,7 @@ Node.prototype.toJSON = function() {
 		x: this.x,
 		y: this.y,
 		id: this.id,
-		title: this.title,
+		title: this.name,
 		inputs: this.inputs.map(function(i) {
 			return i.toJSON();
 		}),
@@ -99,7 +99,7 @@ Node.prototype.updateRects = function() {
 
 Node.prototype.generateHTML = function() {
 	var this_ = this;
-	var html = '<table><tr><td class="title">' + this.title + '</td><td class="edit-link"><span>edit</span></td></tr></table>';
+	var html = '<table><tr><td class="title">' + this.name + '</td><td class="edit-link"><span>edit</span></td></tr></table>';
 	html += '<table><tr><td>';
 
 	// inputs to html
