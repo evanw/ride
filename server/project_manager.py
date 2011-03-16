@@ -12,7 +12,7 @@ class ProjectManager:
         except:
             pass
         
-        self.projects = os.listdir(self.workspace_path)
+        self.projects = [n for n in os.listdir(self.workspace_path) if os.path.exists(os.path.join(self.workspace_path, n, 'project.yaml')) ]
         
     def get_projects(self):
         return {
