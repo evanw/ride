@@ -21,7 +21,7 @@ $(window).load(function() {
 	];
 
 	$('.project-link').live('click', function() {
-		window.open('/project/untitled/');
+		window.open('/project/' + this.innerHTML + '/');
 	});
 	$('.mac-button').live('mousedown', function(e) {
 		e.preventDefault();

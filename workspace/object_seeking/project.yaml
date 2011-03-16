@@ -111,6 +111,6 @@ nodes:
     id: 7
     inputs:
       - type:
-      - id: 18
-      - name: twist
+        id: 18
+        name: twist
     outputs: []
