@@ -29,7 +29,7 @@ Node.prototype.toJSON = function() {
 		x: this.x,
 		y: this.y,
 		id: this.id,
-		title: this.name,
+		name: this.name,
 		inputs: this.inputs.map(function(i) {
 			return i.toJSON();
 		}),
