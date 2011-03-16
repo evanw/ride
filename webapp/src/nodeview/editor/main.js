@@ -1,7 +1,7 @@
 var editor;
 
 setInterval(function() {
-	editor.draw();
+	if (editor) editor.draw();
 }, 50);
 
 $(window).load(function() {

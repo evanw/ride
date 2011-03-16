@@ -40,12 +40,15 @@ Node.prototype.toJSON = function() {
 };
 
 Node.prototype.update = function(name, value) {
-	this[name] = value;
-	this.generateHTML();
-	this.updateRects();
-	this.hidePopup();
-	
-	channel('project', projectName, 'node', 'update').publish(this.toJSON());
+	if (this[name] !== value) {
+		this[name] = value;
+		this.generateHTML();
+		this.updateRects();
+		this.hidePopup();
+
+		// TODO: support partial dictionaries
+		channel('project', projectName, 'node', 'update').publish(this.toJSON());
+	}
 };
 
 Node.prototype.generatePopupHTML = function() {
