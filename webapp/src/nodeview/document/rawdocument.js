@@ -1,8 +1,7 @@
 // Document handles undo using a RawDocument as backing
-function RawDocument(updateCallback) {
+function RawDocument() {
 	this.nodes = [];
 	this.sel = [];
-	this.updateCallback = updateCallback;
 }
 
 RawDocument.prototype.fromJSON = function(json) {
@@ -13,7 +12,6 @@ RawDocument.prototype.fromJSON = function(json) {
 	for (var i = 0; i < this.nodes.length; i++) {
 		this.nodes[i].createElement();
 	}
-	this.updateCallback();
 	return this;
 };
 
@@ -28,7 +26,6 @@ RawDocument.prototype.toJSON = function() {
 RawDocument.prototype.addNode = function(node) {
 	this.nodes.push(node);
 	node.createElement();
-	this.updateCallback();
 };
 
 RawDocument.prototype.removeNode = function(node) {
@@ -49,12 +46,10 @@ RawDocument.prototype.removeNode = function(node) {
 	this.sel.removeOnce(node);
 	this.nodes.removeOnce(node);
 	node.deleteElement();
-	this.updateCallback();
 };
 
 RawDocument.prototype.updateNode = function(node, name, value) {
 	node.update(name, value);
-	this.updateCallback();
 };
 
 RawDocument.prototype.setSelection = function(sel) {
@@ -65,15 +60,12 @@ RawDocument.prototype.setSelection = function(sel) {
 		sel[i].element.className = 'selected node';
 	}
 	this.sel = sel;
-	this.updateCallback();
 };
 
 RawDocument.prototype.addConnection = function(input, output) {
 	input.connectTo(output);
-	this.updateCallback();
 };
 
 RawDocument.prototype.removeConnection = function(input, output) {
 	input.disconnectFrom(output);
-	this.updateCallback();
 };

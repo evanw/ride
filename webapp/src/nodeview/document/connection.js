@@ -16,6 +16,7 @@ Connection.prototype.fromJSON = function(json) {
 
 Connection.prototype.toJSON = function() {
 	return {
+		id: this.id,
 		name: this.name,
 		connections: this.connections.map(function(c) {
 			return c.id;

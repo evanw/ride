@@ -1,5 +1,5 @@
-function Document(updateCallback) {
-	this.rawDoc = new RawDocument(updateCallback);
+function Document() {
+	this.rawDoc = new RawDocument();
 	this.undoStack = new UndoStack();
 }
 

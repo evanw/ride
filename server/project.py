@@ -33,7 +33,7 @@ class Project:
         
     def save(self):
         handle = open(self.project_file_path, 'w')
-        handle.write(yaml.dump(self.to_dict()))
+        handle.write(yaml.safe_dump(self.to_dict()))
         handle.close()
         
     def load(self):

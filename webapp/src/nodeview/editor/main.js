@@ -1,5 +1,9 @@
 var editor;
 
+setInterval(function() {
+	editor.draw();
+}, 50);
+
 $(window).load(function() {
 	var context = $('#canvas')[0].getContext('2d');
 	editor = new Editor(context);

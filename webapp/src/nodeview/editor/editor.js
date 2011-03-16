@@ -1,10 +1,7 @@
 function Editor(context) {
 	var this_ = this;
 	this.context = context;
-	this.projectName = null;
-	this.doc = new Document(function() {
-		this_.draw();
-	});
+	this.doc = new Document();
 	this.tools = [
 		// Listed in order of precedence
 		new PopupTool(this.doc),
