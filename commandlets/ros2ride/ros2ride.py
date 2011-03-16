@@ -10,14 +10,14 @@ try:
 except ImportError:
 	from yaml import Dumper
 
-class EmptyString(object):
-	def __getattr__(self, name):
-		return ''
-
 try:
 	from colorama import init as colorama_init
 	from colorama import Fore, Style
 except ImportError:
+	class EmptyString(object):
+		def __getattr__(self, name):
+			return ''
+	
 	def colorama_init(autoreset=False):
 		pass
 
