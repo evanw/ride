@@ -18,10 +18,7 @@ Connection.prototype.toJSON = function() {
 	return {
 		name: this.name,
 		connections: this.connections.map(function(c) {
-			return {
-				nodeID: c.parent.id,
-				connectionID: c.id
-			};
+			return c.id;
 		})
 	};
 };
