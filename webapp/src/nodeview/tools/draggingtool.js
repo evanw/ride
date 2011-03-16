@@ -41,6 +41,7 @@ DraggingTool.prototype.mousePressed = function(x, y) {
 	this.minX = 30 + x - this.minX;
 	this.minY = 30 + y - this.minY;
 
+	this.doc.undoStack.endAllBatches();
 	this.doc.undoStack.beginBatch();
 	return true;
 };

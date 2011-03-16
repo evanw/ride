@@ -27,7 +27,7 @@ NodeLinkTool.prototype.updateElement = function(x, y) {
 
 	var ax = startX - left, ay = startY - top;
 	var bx = endX - left, by = endY - top;
-	var offset = 100;//this.start instanceof Input ? -100 : 100;
+	var offset = 100;
 	var c = this.c;
 
 	drawLink(c, ax, ay, bx, by);

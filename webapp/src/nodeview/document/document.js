@@ -12,12 +12,35 @@ Document.prototype.getSelection = function() {
 };
 
 Document.prototype.fromJSON = function(json) {
-	this.rawDoc.nodes = json.nodes.map(function(n) {
-		var node = new Node();
-		node.fromJSON(n);
-		node.createElement();
-		return node;
+	var nodes = json.nodes.map(function(n) {
+		return new Node().fromJSON(n);
 	});
+
+	var connections = {};
+	nodes.map(function(node) {
+		node.createElement();
+		node.inputs.map(function(input) {
+			connections[input.id] = input;
+		});
+		node.outputs.map(function(output) {
+			connections[output.id] = output;
+		});
+	});
+	nodes.map(function(node) {
+		node.inputs.map(function(input) {
+			input.connections = input.connections.map(function(id) {
+				return connections[id];
+			});
+		});
+		node.outputs.map(function(output) {
+			output.connections = output.connections.map(function(id) {
+				return connections[id];
+			});
+		});
+	});
+
+	console.log(nodes, connections);
+	this.rawDoc.nodes = nodes;
 	this.rawDoc.sel = [];
 	this.undoStack = new UndoStack();
 };
