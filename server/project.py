@@ -26,7 +26,13 @@ class Project:
         self.save()
 
     def add_node(self, json):
-        pass
+        # don't add the same node twice
+        for n in self.nodes:
+            if n.id == json['id']:
+                return
+
+        self.nodes.append(Node().from_dict(json))
+        self.save()
 
     def remove_node(self, json):
         self.nodes = [n for n in self.nodes if n.id != json['id']]

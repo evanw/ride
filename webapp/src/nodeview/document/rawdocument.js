@@ -26,6 +26,8 @@ RawDocument.prototype.toJSON = function() {
 RawDocument.prototype.addNode = function(node) {
 	this.nodes.push(node);
 	node.createElement();
+
+	channel('project', projectName, 'node', 'add').publish(node.toJSON());
 };
 
 RawDocument.prototype.removeNode = function(node) {

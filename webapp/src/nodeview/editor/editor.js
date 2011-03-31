@@ -92,8 +92,20 @@ Editor.prototype.deleteSelection = function() {
 	this.draw();
 };
 
-Editor.prototype.insertNode = function(json) {
-	json['id'] = Math.random().toString().substr(2);
+function newID() {
+	return Math.random().toString().substr(2);
+}
+
+// this is meant to be called to insert a new node from the
+// library, not an existing node from over the network
+Editor.prototype.insertNodeFromLibrary = function(json) {
+	json.id = newID();
+	json.inputs.map(function(i) {
+		i.id = newID();
+	});
+	json.outputs.map(function(i) {
+		i.id = newID();
+	});
 	this.doc.addNode(new Node().fromJSON(json));
 	this.draw();
 };
@@ -117,6 +129,16 @@ Editor.prototype.onUpdateNodeMessage = function(json) {
 };
 
 Editor.prototype.onAddNodeMessage = function(json) {
+	// don't add the node if it already exists
+	var nodes = this.doc.getNodes();
+	for (var i = 0; i < nodes.length; i++) {
+		if (nodes[i].id === json.id) {
+			return;
+		}
+	}
+
+	this.doc.addNode(new Node().fromJSON(json));
+	this.draw();
 };
 
 Editor.prototype.onRemoveNodeMessage = function(json) {

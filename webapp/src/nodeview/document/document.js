@@ -60,6 +60,8 @@ Document.prototype.addNode = function(node) {
 };
 
 Document.prototype.removeNode = function(node) {
+	this.undoStack.beginBatch();
+
 	// disconnect all inputs
 	for (var i = 0; i < node.inputs.length; i++) {
 		var input = node.inputs[i];
@@ -77,6 +79,7 @@ Document.prototype.removeNode = function(node) {
 	}
 
 	this.undoStack.push(new RemoveNodeCommand(this.rawDoc, node));
+	this.undoStack.endBatch();
 };
 
 Document.prototype.updateNode = function(node, name, value) {
@@ -119,6 +122,7 @@ Document.prototype.addConnection = function(input, output) {
 };
 
 Document.prototype.removeConnection = function(input, output) {
+	// only remove the connection if needed
 	if (input.connections.contains(output)) {
 		this.undoStack.push(new RemoveConnectionCommand(this.rawDoc, input, output));
 	}
