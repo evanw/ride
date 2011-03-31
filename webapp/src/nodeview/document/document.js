@@ -60,6 +60,22 @@ Document.prototype.addNode = function(node) {
 };
 
 Document.prototype.removeNode = function(node) {
+	// disconnect all inputs
+	for (var i = 0; i < node.inputs.length; i++) {
+		var input = node.inputs[i];
+		while (input.connections.length) {
+			this.removeConnection(input, input.connections[0]);
+		}
+	}
+
+	// disconnect all outputs
+	for (var i = 0; i < node.outputs.length; i++) {
+		var output = node.outputs[i];
+		while (output.connections.length) {
+			this.removeConnection(output.connections[0], output);
+		}
+	}
+
 	this.undoStack.push(new RemoveNodeCommand(this.rawDoc, node));
 };
 
@@ -91,14 +107,19 @@ Document.prototype.setSelection = function(sel) {
 
 Document.prototype.deleteSelection = function() {
 	while (this.rawDoc.sel.length > 0) {
-		this.undoStack.push(new RemoveNodeCommand(this.rawDoc, this.rawDoc.sel[0]));
+		this.removeNode(this.rawDoc.sel[0]);
 	}
 };
 
 Document.prototype.addConnection = function(input, output) {
-	this.undoStack.push(new AddConnectionCommand(this.rawDoc, input, output));
+	// only add the connection if needed
+	if (!input.connections.contains(output)) {
+		this.undoStack.push(new AddConnectionCommand(this.rawDoc, input, output));
+	}
 };
 
 Document.prototype.removeConnection = function(input, output) {
-	this.undoStack.push(new RemoveConnectionCommand(this.rawDoc, input, output));
+	if (input.connections.contains(output)) {
+		this.undoStack.push(new RemoveConnectionCommand(this.rawDoc, input, output));
+	}
 };

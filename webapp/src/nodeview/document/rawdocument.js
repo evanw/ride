@@ -32,14 +32,14 @@ RawDocument.prototype.removeNode = function(node) {
 	// remove links
 	for (var i = 0; i < node.inputs.length; i++) {
 		var input = node.inputs[i];
-		for (var j = 0; j < input.connections.length; j++) {
-			input.connections[j].disconnectFrom(input);
+		while (input.connections.length) {
+			input.connections[0].disconnectFrom(input);
 		}
 	}
 	for (var i = 0; i < node.outputs.length; i++) {
 		var output = node.outputs[i];
-		for (var j = 0; j < output.connections.length; j++) {
-			output.disconnectFrom(output.connections[j]);
+		while (output.connections.length) {
+			output.disconnectFrom(output.connections[0]);
 		}
 	}
 

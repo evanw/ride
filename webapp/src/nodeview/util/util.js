@@ -2,6 +2,15 @@ String.prototype.toHTML = function() {
 	return this.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 };
 
+Array.prototype.contains = function(element) {
+	for (var i = 0; i < this.length; i++) {
+		if (this[i] === element) {
+			return true;
+		}
+	}
+	return false;
+};
+
 Array.prototype.map = function(func) {
 	var result = [];
 	for (var i = 0; i < this.length; i++) {
@@ -12,7 +21,7 @@ Array.prototype.map = function(func) {
 
 Array.prototype.addOnce = function(element) {
 	for (var i = 0; i < this.length; i++) {
-		if (this[i] == element) {
+		if (this[i] === element) {
 			return;
 		}
 	}
@@ -21,7 +30,7 @@ Array.prototype.addOnce = function(element) {
 
 Array.prototype.removeAll = function(element) {
 	for (var i = 0; i < this.length; i++) {
-		if (this[i] == element) {
+		if (this[i] === element) {
 			this.splice(i--, 1);
 		}
 	}
@@ -29,7 +38,7 @@ Array.prototype.removeAll = function(element) {
 
 Array.prototype.removeOnce = function(element) {
 	for (var i = 0; i < this.length; i++) {
-		if (this[i] == element) {
+		if (this[i] === element) {
 			this.splice(i, 1);
 			return;
 		}

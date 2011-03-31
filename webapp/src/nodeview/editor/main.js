@@ -38,6 +38,7 @@ $(window).load(function() {
 		if ((e.ctrlKey || e.metaKey) && e.which == 'Z'.charCodeAt(0)) {
 			if (e.shiftKey) editor.redo();
 			else editor.undo();
+			e.preventDefault();
 		} else if ((e.ctrlKey || e.metaKey) && e.which == 'A'.charCodeAt(0)) {
 			editor.selectAll();
 			e.preventDefault();
