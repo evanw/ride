@@ -125,15 +125,48 @@ Editor.prototype.onRemoveNodeMessage = function(json) {
 		var node = nodes[i];
 		if (node.id === json.id) {
 			this.doc.removeNode(node);
+			this.draw();
 			break;
 		}
 	}
 };
 
+function findInputAndOutput(nodes, json) {
+	var input = null;
+	var output = null;
+	for (var i = 0; i < nodes.length; i++) {
+		var node = nodes[i];
+		for (var j = 0; j < node.inputs.length; j++) {
+			if (node.inputs[j].id == json.input) {
+				input = node.inputs[j];
+			}
+		}
+		for (var j = 0; j < node.outputs.length; j++) {
+			if (node.outputs[j].id == json.output) {
+				output = node.outputs[j];
+			}
+		}
+	}
+	return {
+		input: input,
+		output: output
+	};
+}
+
 Editor.prototype.onAddConnectionMessage = function(json) {
+	var info = findInputAndOutput(this.doc.getNodes(), json);
+	if (info.input && info.output) {
+		this.doc.addConnection(info.input, info.output);
+		this.draw();
+	}
 };
 
 Editor.prototype.onRemoveConnectionMessage = function(json) {
+	var info = findInputAndOutput(this.doc.getNodes(), json);
+	if (info.input && info.output) {
+		this.doc.removeConnection(info.input, info.output);
+		this.draw();
+	}
 };
 
 Editor.prototype.onSetNodesMessage = function(json) {

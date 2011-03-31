@@ -73,7 +73,7 @@ RawDocument.prototype.setSelection = function(sel) {
 
 RawDocument.prototype.addConnection = function(input, output) {
 	input.connectTo(output);
-	channel('project', projectName, 'node', 'disconnect').publish({
+	channel('project', projectName, 'node', 'connect').publish({
 		input: input.id,
 		output: output.id
 	});

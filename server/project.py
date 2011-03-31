@@ -34,10 +34,28 @@ class Project:
         self.save()
 
     def add_connection(self, json):
-        pass
+        input_id, output_id = json['input'], json['output']
+        for n in self.nodes:
+            for i in n.inputs:
+                if i.id == input_id and output_id not in i.connections:
+                    i.connections.append(output_id)
+            for o in n.outputs:
+                if o.id == output_id and input_id not in o.connections:
+                    o.connections.append(input_id)
+        self.remove_invalid_connections()
+        self.save()
 
     def remove_connection(self, json):
-        pass
+        input_id, output_id = json['input'], json['output']
+        for n in self.nodes:
+            for i in n.inputs:
+                if i.id == input_id and output_id in i.connections:
+                    i.connections.remove(output_id)
+            for o in n.outputs:
+                if o.id == output_id and input_id in o.connections:
+                    o.connections.remove(input_id)
+        self.remove_invalid_connections()
+        self.save()
         
     def to_dict(self):
         return {

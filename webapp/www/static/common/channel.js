@@ -36,9 +36,15 @@ window.channel = (function() {
 	};
 
 	Channel.prototype.publish = function(data) {
+		// Is publishing disabled?
+		if (this.disabled) return;
+
+		// Temporarily disable this channel to prevent feedback loops
+		this.disabled = true;
 		for (var i = 0; i < this.callbacks.length; i++) {
 			this.callbacks[i](data);
 		}
+		this.disabled = false;
 	};
 
 	////////////////////////////////////////////////////////////////////////////////
