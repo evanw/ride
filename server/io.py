@@ -212,15 +212,15 @@ class Server:
         
         # create a custom node.js script
         js = _js % (ws_port, py_port)
-        handle, path = tempfile.mkstemp(suffix='.js')
-        os.write(handle, js)
-        os.close(handle)
+        file = tempfile.NamedTemporaryFile(suffix='.js', delete=False)
+        file.write(js)
+        file.close()
         
         # run that script in node.js
-        process = subprocess.Popen(['node', path])
+        process = subprocess.Popen(['node', file.name])
         def cleanup():
             process.kill()
-            os.remove(path)
+            os.remove(file.name)
         atexit.register(cleanup)
         
         # make sure we can communicate with node.js
