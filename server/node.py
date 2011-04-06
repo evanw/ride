@@ -14,14 +14,29 @@ class Connection:
         }
 
     def from_dict(self, d):
-        if 'id' in d:
-            self.id = str(d['id'])
-        if 'type' in d:
-            self.type = d['type']
-        if 'name' in d:
-            self.name = d['name']
-        if 'connections' in d:
-            self.connections = map(str, d['connections'])
+        if 'id' in d: self.id = str(d['id'])
+        if 'type' in d: self.type = d['type']
+        if 'name' in d: self.name = d['name']
+        if 'connections' in d: self.connections = map(str, d['connections'])
+        return self # allow chaining
+
+class Param:
+    def __init__(self):
+        self.name = ''
+        self.type = None
+        self.value = None
+
+    def to_dict(self):
+        return {
+            'name': self.name,
+            'type': self.type,
+            'value': self.value,
+        }
+
+    def from_dict(self, d):
+        if 'name' in d: self.name = d['name']
+        if 'type' in d: self.type = d['type']
+        if 'value' in d: self.value = d['type']
         return self # allow chaining
 
 EXEC_ROSLAUNCH = 0
@@ -35,12 +50,12 @@ class Node:
         self.name = ''
         self.inputs = []
         self.outputs = []
-        self.type = None
+        self.params = []
         
         # what package this node came from
-        self.package = ''
+        self.pkg = ''
         
-        # what to run in self.package
+        # what to run in self.pkg
         self.exec_name = ''
         
         # how to run self.exec_name:
@@ -65,22 +80,21 @@ class Node:
             'name': self.name,
             'inputs': [i.to_dict() for i in self.inputs],
             'outputs': [o.to_dict() for o in self.outputs],
-            'type': self.type,
-            'pkg': self.package,
+            'params': [p.to_dict() for p in self.params],
+            'pkg': self.pkg,
             'chdir': self.chdir,
             'remap': self.remap,
         }
-        if self.exec_mode == EXEC_ROSLAUNCH:
-            d['launch'] = self.exec_name
-        elif self.exec_mode == EXEC_BINARY:
-            d['exec'] = self.exec_name
+        if self.exec_mode == EXEC_ROSLAUNCH: d['launch'] = self.exec_name
+        elif self.exec_mode == EXEC_BINARY: d['exec'] = self.exec_name
         return d
 
     def from_dict(self, d):
         self.update(d)
-        self.id = str(d['id'])
-        self.inputs = [Connection().from_dict(i) for i in d['inputs']]
-        self.outputs = [Connection().from_dict(o) for o in d['outputs']]
+        if 'id' in d: self.id = str(d['id'])
+        if 'inputs' in d: self.inputs = [Connection().from_dict(i) for i in d['inputs']]
+        if 'outputs' in d: self.outputs = [Connection().from_dict(o) for o in d['outputs']]
+        if 'params' in d: self.params = [Param().from_dict(p) for p in d['params']]
         if 'exec' in d:
             self.exec_mode = EXEC_BINARY
             self.exec_name = d['exec']
@@ -95,4 +109,4 @@ class Node:
         if 'name' in d: self.name = d['name']
         if 'chdir' in d: self.chdir = d['chdir']
         if 'remap' in d: self.remap = d['remap']
-        if 'pkg' in d: self.package = d['pkg']
+        if 'pkg' in d: self.pkg = d['pkg']
