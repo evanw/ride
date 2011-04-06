@@ -9,9 +9,9 @@ nodes:
     id: '0'
     name: image
     type: null
+  params: []
   pkg: gscam
   remap: []
-  type: null
   x: 30
   y: 61
 - chdir: false
@@ -28,10 +28,10 @@ nodes:
     id: '2'
     name: blobs
     type: null
+  params: []
   pkg: cmvision
   remap:
   - [image, /gscam/image_raw]
-  type: null
   x: 205
   y: 127
 - chdir: true
@@ -48,10 +48,10 @@ nodes:
     id: '4'
     name: tags
     type: null
+  params: []
   pkg: ar_recog
   remap:
   - [image, /gscam/image_raw]
-  type: null
   x: 275
   y: 30
 - chdir: false
@@ -67,9 +67,9 @@ nodes:
     id: '6'
     name: blob_list
     type: null
+  params: []
   pkg: ''
   remap: []
-  type: null
   x: 349
   y: 245
 - chdir: false
@@ -105,9 +105,9 @@ nodes:
     id: '13'
     name: pink
     type: null
+  params: []
   pkg: ''
   remap: []
-  type: null
   x: 530
   y: 109
 - chdir: false
@@ -124,9 +124,9 @@ nodes:
     id: '15'
     name: twist
     type: null
+  params: []
   pkg: ''
   remap: []
-  type: null
   x: 752
   y: 30
 - chdir: false
@@ -142,9 +142,9 @@ nodes:
     id: '17'
     name: twist
     type: null
+  params: []
   pkg: ''
   remap: []
-  type: null
   x: 779
   y: 213
 - chdir: false
@@ -157,8 +157,8 @@ nodes:
     type: null
   name: create_driver
   outputs: []
+  params: []
   pkg: irobot_create_2_1
   remap: []
-  type: null
   x: 981
   y: 108
