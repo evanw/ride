@@ -10,7 +10,7 @@ class Connection:
             'id': str(self.id),
             'type': self.type,
             'name': self.name,
-            'connections': map(str, self.connections)
+            'connections': map(str, self.connections),
         }
 
     def from_dict(self, d):
@@ -24,6 +24,9 @@ class Connection:
             self.connections = map(str, d['connections'])
         return self # allow chaining
 
+EXEC_ROSLAUNCH = 0
+EXEC_BINARY = 1
+
 class Node:
     def __init__(self):
         self.id = ''
@@ -33,28 +36,63 @@ class Node:
         self.inputs = []
         self.outputs = []
         self.type = None
-        # TODO: details about repo it came from and package/stack it's in
+        
+        # what package this node came from
+        self.package = ''
+        
+        # what to run in self.package
+        self.exec_name = ''
+        
+        # how to run self.exec_name:
+        # - EXEC_ROSLAUNCH to run with roslaunch
+        # - EXEC_BINARY to run with bash
+        # - None to indicate that self.exec_name is invalid
+        self.exec_mode = None
+        
+        # - True to run the node in the package directory
+        # - False to run the node in the ROS root directory
+        self.chdir = False
+
+        # TODO: will be done automatically in the future
+        # list of things to remap, just including this to not clobber the existing example file
+        self.remap = []
 
     def to_dict(self):
-        return {
+        d = {
             'id': str(self.id),
             'x': self.x,
             'y': self.y,
             'name': self.name,
             'inputs': [i.to_dict() for i in self.inputs],
             'outputs': [o.to_dict() for o in self.outputs],
-            'type': self.type
+            'type': self.type,
+            'pkg': self.package,
+            'chdir': self.chdir,
+            'remap': self.remap,
         }
+        if self.exec_mode == EXEC_ROSLAUNCH:
+            d['launch'] = self.exec_name
+        elif self.exec_mode == EXEC_BINARY:
+            d['exec'] = self.exec_name
+        return d
 
     def from_dict(self, d):
         self.update(d)
         self.id = str(d['id'])
         self.inputs = [Connection().from_dict(i) for i in d['inputs']]
         self.outputs = [Connection().from_dict(o) for o in d['outputs']]
-        #self.type = d['type']
+        if 'exec' in d:
+            self.exec_mode = EXEC_BINARY
+            self.exec_name = d['exec']
+        elif 'launch' in d:
+            self.exec_mode = EXEC_ROSLAUNCH
+            self.exec_name = d['launch']
         return self # allow chaining
 
     def update(self, d):
         if 'x' in d: self.x = d['x']
         if 'y' in d: self.y = d['y']
         if 'name' in d: self.name = d['name']
+        if 'chdir' in d: self.chdir = d['chdir']
+        if 'remap' in d: self.remap = d['remap']
+        if 'pkg' in d: self.package = d['pkg']

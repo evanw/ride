@@ -1,5 +1,7 @@
 nodes:
-- id: '0'
+- chdir: true
+  exec: gscam
+  id: '0'
   inputs: []
   name: gscam
   outputs:
@@ -7,25 +9,34 @@ nodes:
     id: '0'
     name: image
     type: null
+  pkg: gscam
+  remap: []
   type: null
   x: 30
   y: 61
-- id: '1'
+- chdir: false
+  id: '1'
   inputs:
   - connections: ['0']
     id: '1'
     name: image
     type: null
+  launch: cmvision.launch
   name: cmvision
   outputs:
   - connections: ['5']
     id: '2'
     name: blobs
     type: null
+  pkg: cmvision
+  remap:
+  - [image, /gscam/image_raw]
   type: null
   x: 205
   y: 127
-- id: '2'
+- chdir: true
+  exec: ar_recog
+  id: '2'
   inputs:
   - connections: ['0']
     id: '3'
@@ -33,14 +44,18 @@ nodes:
     type: null
   name: ar_recog
   outputs:
-  - connections: []
+  - connections: ['7']
     id: '4'
     name: tags
     type: null
+  pkg: ar_recog
+  remap:
+  - [image, /gscam/image_raw]
   type: null
   x: 275
   y: 30
-- id: '3'
+- chdir: false
+  id: '3'
   inputs:
   - connections: ['2']
     id: '5'
@@ -52,12 +67,15 @@ nodes:
     id: '6'
     name: blob_list
     type: null
+  pkg: ''
+  remap: []
   type: null
-  x: 347
-  y: 227
-- id: '4'
+  x: 349
+  y: 245
+- chdir: false
+  id: '4'
   inputs:
-  - connections: ['6']
+  - connections: ['6', '4']
     id: '7'
     name: blob_list
     type: null
@@ -87,10 +105,14 @@ nodes:
     id: '13'
     name: pink
     type: null
+  pkg: ''
+  remap: []
   type: null
-  x: 505
-  y: 78
-- id: '5'
+  x: 530
+  y: 109
+- chdir: false
+  exec: seek_objects.py
+  id: '5'
   inputs:
   - connections: ['9']
     id: '14'
@@ -102,10 +124,13 @@ nodes:
     id: '15'
     name: twist
     type: null
+  pkg: ''
+  remap: []
   type: null
   x: 752
   y: 30
-- id: '6'
+- chdir: false
+  id: '6'
   inputs:
   - connections: ['11']
     id: '16'
@@ -117,17 +142,23 @@ nodes:
     id: '17'
     name: twist
     type: null
+  pkg: ''
+  remap: []
   type: null
-  x: 763
-  y: 177
-- id: '7'
+  x: 779
+  y: 213
+- chdir: false
+  exec: driver.py
+  id: '7'
   inputs:
   - connections: ['15', '17']
     id: '18'
     name: twist
     type: null
-  name: irobot_create_2_1
+  name: create_driver
   outputs: []
+  pkg: irobot_create_2_1
+  remap: []
   type: null
-  x: 965
-  y: 72
+  x: 981
+  y: 108
