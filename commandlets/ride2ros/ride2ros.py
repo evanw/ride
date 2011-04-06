@@ -50,7 +50,7 @@ def main():
 	# Define the core ros parameters.  We do this to add the workspace directory onto
 	# ROS's package path.
 	output += ['\t<machine name="local-ride" address="localhost" default="true" ' + \
-				'ros-root="$(env ROS_ROOT)" ros-package-path="$(env ROS_PACKAGE_PATH):' + workspace_dir + '" />']
+				'ros-root="$(env ROS_ROOT)" ros-package-path="' + workspace_dir + ':$(env ROS_PACKAGE_PATH)" />']
 	
 	# Loop through the nodes listed in the project file.
 	for node in project['nodes']:
