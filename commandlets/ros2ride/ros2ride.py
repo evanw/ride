@@ -159,8 +159,11 @@ def parse_py(files):
 				py_rosimports.append(f)
 	
 	if verbose:
-		print(Fore.BLUE + 'Found ' + str(len(py_rosimports)) + ' python files with rospy imports:')
-		print(Fore.BLUE + '    ' + ', '.join(py_rosimports))
+		if len(py_rosimports) > 0:
+			print(Fore.BLUE + 'Found ' + str(len(py_rosimports)) + ' python files with rospy imports:')
+			print(Fore.BLUE + '    ' + ', '.join(py_rosimports))
+		else:
+			print(Fore.BLUE + 'Found 0 python files with rospy imports.')
 	
 	# We've searched all files, so let's return our results.
 	return py_nodes
