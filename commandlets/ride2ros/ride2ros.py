@@ -91,7 +91,7 @@ def main():
 		
 		if 'params' in node:
 			for param in node['params']:
-				node_xml += '\t\t<param name="' + param['name'] + '" value="' + str(param['value']) + '" />\n'
+				node_xml += '\t\t<rosparam param="' + param['name'] + '"> ' + str(param['value']) + ' <rosparam/>\n'
 		
 		# Close the tag.
 		if shorthand:
