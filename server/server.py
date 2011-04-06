@@ -6,7 +6,7 @@ from project_manager import ProjectManager
 from project import *
 
 project_manager = ProjectManager()
-project_manager.set_workspace('~/ros_ide/workspace')
+project_manager.set_workspace(os.path.join(os.getcwd(), '../workspace'))
 
 class ProjectServer(Listener):
     def __init__(self, path):
