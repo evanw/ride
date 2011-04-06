@@ -4,9 +4,12 @@ import os
 from channel import Listener
 from project_manager import ProjectManager
 from project import *
+from library import *
+
+workspace_path = os.path.join(os.getcwd(), '../workspace')
 
 project_manager = ProjectManager()
-project_manager.set_workspace(os.path.join(os.getcwd(), '../workspace'))
+project_manager.set_workspace(workspace_path)
 
 class ProjectServer(Listener):
     def __init__(self, path):
@@ -35,11 +38,14 @@ class ProjectServer(Listener):
 class ProjectManagerServer(Listener):
     def __init__(self):
         self.subscribe('workspace', 'list', 'request')
+        self.subscribe('workspace', 'library', 'request')
         self.project_servers = [ProjectServer(os.path.join(project_manager.workspace_path, p)) for p in project_manager.projects]
 
     def on_message(self, channel, data):
         if channel == ('workspace', 'list', 'request'):
             self.publish(('workspace', 'list', 'response'), project_manager.get_projects())
+        if channel == ('workspace', 'library', 'request'):
+            self.publish(('workspace', 'library', 'response'), project_manager.get_library())
 
 # this will handle requests on a separate thread
 pms = ProjectManagerServer()

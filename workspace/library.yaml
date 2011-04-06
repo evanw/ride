@@ -1,3 +1,5 @@
+nodes:
+
 - name: iRobot Create Driver
   exec: driver.py
   pkg: irobot_create_2_1
