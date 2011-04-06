@@ -34,9 +34,7 @@ cpp_ext = ['c', 'cpp', 'cc', 'cxx']
 #def write_yaml
 def write_yaml(pynodes, cppnodes):
 	output = {'nodes': \
-				[{n['name']: {'type':'rosnode-py', 'path':n['path']}} for n in pynodes] \
-				+ \
-				[{n['name']: {'type':'rosnode-cpp', 'path':n['path']}} for n in cppnodes] \
+				[{'name': n['name'], 'exec':os.path.basename(n['path'])} for n in pynodes + cppnodes]
 			 }
 	
 	return yaml_dump(output, default_flow_style = False)
@@ -132,8 +130,8 @@ def parse_py(files):
 			for line in fread:
 				match = False
 				# If we've imported rospy, try to find an init_node call.
+				match = re.search(modname + '.init_node\(\'(.+?)\'', line)
 				if imported:
-					match = re.search(modname + '.init_node\(\'(.+?)\'\)', line)
 					# If we find a init_node call, mark down that there's a node in this
 					# file.  Keep searching, because it's possible that multiple nodes are
 					# defined in a single file.
