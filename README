@@ -1,10 +1,10 @@
 To run the server:
 
-    cd webapp && python build.py release && cd www && python server.py
+    # compile the javascript for the webapp
+    cd webapp && python build.py release
 
-TODO:
-
-    Broadcast channel to fix echo problem, don't send all movements while dragging because it'll mess up the undo stack.
+    # run the two servers (static files and dynamic socket.io)
+    cd server && python server.py
 
 Installation:
 
