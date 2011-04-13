@@ -75,8 +75,9 @@ class Project:
         
     def load(self):
         yml = yaml.safe_load(file(self.project_file_path, 'r'))
-        self.nodes = [Node().from_dict(n) for n in yml['nodes']]
-        self.remove_invalid_connections()
+        if yml and 'nodes' in yml:
+            self.nodes = [Node().from_dict(n) for n in yml['nodes']]
+            self.remove_invalid_connections()
         self.save()
 
     def remove_invalid_connections(self):
