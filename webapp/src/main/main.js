@@ -1,18 +1,35 @@
 function updateProjectList(projects) {
 	var html = '';
-	projects.sort();
+	var names = projects.map(function(project) {
+		return project.name;
+	});
+	names.sort();
 	
 	html += '<div class="mac-button newproject">Create a new project</div>';
 	html += '<h2>Projects:</h2>';
-	for (var i = 0; i < projects.length; i++) {
-		var project = projects[i];
-		html += '<div class="project"><span class="project-link">' + project.name + '</span></div>';
+	for (var i = 0; i < names.length; i++) {
+		var name = names[i];
+		html += '<div class="project"><span class="project-link">' + name + '</span></div>';
 	}
-	if (projects.length == 0) {
+	if (names.length == 0) {
 		html += '<div class="noprojects">No projects yet</div>';
 	}
 	
 	$('.projects').html(html);
+	$('.newproject').click(function() {
+		var name = window.prompt('Please enter the name of your new project (must contain only letters, numbers, and underscores):');
+		if (name !== null) {
+			name = $.trim(name);
+			if (/^\w+$/.test(name)) {
+				channel('workspace', 'list', 'add').publish({
+					name: name
+				});
+				channel('workspace', 'list', 'request').publish({});
+			} else {
+				window.alert('The name "' + name + '" is invalid');
+			}
+		}
+	});
 }
 
 $(window).load(function() {
