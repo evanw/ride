@@ -3,20 +3,14 @@
 	<title>ROS IDE</title>
 	<script type="text/javascript" src="/static/common/jquery.min.js"></script>
 	<script type="text/javascript" src="/static/common/mac-toolbar.js"></script>
+	<script type="text/javascript" src="/static/common/mac-hud.js"></script>
 	<script type="text/javascript" src="/static/common/channel.js"></script>
 	<script type="text/javascript" src="/static/project/generated.js"></script>
 	<link rel="stylesheet" type="text/css" href="/static/common/mac-toolbar.css">
+	<link rel="stylesheet" type="text/css" href="/static/common/mac-hud.css">
 	<link rel="stylesheet" type="text/css" href="/static/project/style.css">
 </head><body>
 	<!-- an iframe is necessary unfortunately because of how browser scrollbars
 	interact with the canvas that draws the links between nodes -->
 	<div class="nodeview"><iframe src="/static/nodeview/index.html"></iframe></div>
-
-	<div class="library">
-		<div class="topbar"></div>
-		<div class="closebutton">&times;</div>
-		<div class="title">Node Library</div>
-		<div class="nodelist"><div class="loading">Loading...</div></div>
-		<div class="buttonbar"><div class="button">Insert Node</div></div>
-	</div>
 </body></html>

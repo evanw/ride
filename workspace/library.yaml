@@ -25,9 +25,10 @@ nodes:
   - name: cmd_vel
     type: geometry_msgs/Twist
 
-- name: Gstreamer
+- name: GStreamer
   exec: gscam
   pkg: gscam
+  inputs: []
   outputs:
   - name: gscam/image_raw
     type: sensor_msgs/Image

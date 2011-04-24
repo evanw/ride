@@ -25,52 +25,20 @@ body {
 	display: block;
 }
 
-.library {
+.mac-hud {
 	position: absolute;
 	top: 100px;
 	bottom: 50px;
 	left: 50%;
 	width: 600px;
 	margin: 0 0 0 -300px;
-	-moz-user-select: -moz-none;
-	-webkit-user-select: none;
-	border-radius: 10px;
-	-moz-box-shadow: 0 5px 10px rgba(0, 0, 0, 0.5);
-	-webkit-box-shadow: 0 5px 10px rgba(0, 0, 0, 0.5);
-	background: rgba(31, 31, 31, 0.9);
-	border: 1px solid #3F3F3F;
-	display: none;
-	color: white;
-	cursor: default;
 }
 
-.library .closebutton {
-	position: absolute;
-	left: 4px;
-	top: 4px;
-	width: 13px;
-	height: 13px;
-	line-height: 11px;
-	background: #BFBFBF;
-	color: black;
-	font-weight: bold;
-	border-radius: 7px;
-	text-align: center;
+.mac-hud .path {
+	font: 12px Inconsolata, Consolas, 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', monospace;
 }
 
-.library .topbar {
-	height: 10px;
-	margin-bottom: -10px;
-	background: rgba(63, 63, 63, 0.5);
-}
-
-.library .title {
-	text-align: center;
-	line-height: 20px;
-	font-size: 10px;
-}
-
-.library .nodelist {
+.mac-hud .rowlist {
 	position: absolute;
 	left: 0;
 	right: 0;
@@ -79,46 +47,9 @@ body {
 	overflow-y: auto;
 }
 
-.library .node {
-	padding: 8px 10px;
-}
-
-.library .selected.node {
-	background: -webkit-gradient(linear, left top, left bottom, from(#6BABF9), to(#2674DB));
-	background: -moz-linear-gradient(#6BABF9, #2674DB);
-	text-shadow: -1px -1px 0 #366DB0, 1px -1px 0 #366DB0, -1px 1px 0 #366DB0, 1px 1px 0 #366DB0;
-}
-
-.library .path {
-	font: 12px Inconsolata, Consolas, 'DejaVu Sans Mono', 'Bitstream Vera Sans Mono', monospace;
-}
-
-.library .loading {
-	padding: 20px 0;
-	color: #7F7F7F;
-	font-size: 11px;
-	text-align: center;
-}
-
-.library .buttonbar {
+.mac-hud .buttonbar {
 	position: absolute;
 	left: 0;
 	right: 0;
 	bottom: 0;
-	height: 40px;
-	line-height: 40px;
-	padding: 0 10px;
-	background: -webkit-gradient(linear, left top, left bottom, from(rgba(63, 63, 63, 0.25)), to(rgba(63, 63, 63, 0)));
-	background: -moz-linear-gradient(rgba(63, 63, 63, 0.25), rgba(63, 63, 63, 0));
-	border-top: 1px solid #3F3F3F;
-}
-
-.library .button {
-	display: inline;
-	border: 1px solid #4F4F4F;
-	border-radius: 12px;
-	font-size: 10px;
-	padding: 4px 12px;
-	background: -webkit-gradient(linear, left top, left bottom, from(rgba(63, 63, 63, 1)), to(rgba(63, 63, 63, 0)));
-	background: -moz-linear-gradient(rgba(63, 63, 63, 1), rgba(63, 63, 63, 0));
 }
