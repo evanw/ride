@@ -4,6 +4,7 @@ body {
 
 .mac-toolbar {
 	border-bottom: 1px solid black;
+	-moz-box-shadow: 0 0 5px black;
 	-webkit-box-shadow: 0 0 5px black;
 }
 
@@ -34,6 +35,7 @@ body {
 	-moz-user-select: -moz-none;
 	-webkit-user-select: none;
 	border-radius: 10px;
+	-moz-box-shadow: 0 5px 10px rgba(0, 0, 0, 0.5);
 	-webkit-box-shadow: 0 5px 10px rgba(0, 0, 0, 0.5);
 	background: rgba(31, 31, 31, 0.9);
 	border: 1px solid #3F3F3F;
@@ -83,6 +85,7 @@ body {
 
 .library .selected.node {
 	background: -webkit-gradient(linear, left top, left bottom, from(#6BABF9), to(#2674DB));
+	background: -moz-linear-gradient(#6BABF9, #2674DB);
 	text-shadow: -1px -1px 0 #366DB0, 1px -1px 0 #366DB0, -1px 1px 0 #366DB0, 1px 1px 0 #366DB0;
 }
 
@@ -106,6 +109,7 @@ body {
 	line-height: 40px;
 	padding: 0 10px;
 	background: -webkit-gradient(linear, left top, left bottom, from(rgba(63, 63, 63, 0.25)), to(rgba(63, 63, 63, 0)));
+	background: -moz-linear-gradient(rgba(63, 63, 63, 0.25), rgba(63, 63, 63, 0));
 	border-top: 1px solid #3F3F3F;
 }
 
@@ -116,4 +120,5 @@ body {
 	font-size: 10px;
 	padding: 4px 12px;
 	background: -webkit-gradient(linear, left top, left bottom, from(rgba(63, 63, 63, 1)), to(rgba(63, 63, 63, 0)));
+	background: -moz-linear-gradient(rgba(63, 63, 63, 1), rgba(63, 63, 63, 0));
 }
