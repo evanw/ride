@@ -8,6 +8,7 @@ function Node() {
 	this.rect = null;
 	this.editRect = null;
 	this.element = null;
+	this.extras = {};
 }
 
 Node.prototype.fromJSON = function(json) {
@@ -21,11 +22,17 @@ Node.prototype.fromJSON = function(json) {
 	this.outputs = json.outputs.map(function(i) {
 		return new Connection(this).fromJSON(i);
 	});
+	this.extras = {};
+	for (var x in json) {
+		if (!(x in this)) {
+			this.extras[x] = json[x];
+		}
+	}
 	return this;
 };
 
 Node.prototype.toJSON = function() {
-	return {
+	var json = {
 		x: this.x,
 		y: this.y,
 		id: this.id,
@@ -37,6 +44,10 @@ Node.prototype.toJSON = function() {
 			return o.toJSON();
 		})
 	};
+	for (var x in this.extras) {
+		json[x] = this.extras[x];
+	}
+	return json;
 };
 
 Node.prototype.update = function(name, value) {

@@ -90,3 +90,7 @@ body {
 	background: -webkit-gradient(linear, left top, left bottom, from(rgba(191, 191, 191, 0.75)), to(rgba(191, 191, 191, 0.25)));
 	background: -moz-linear-gradient(rgba(191, 191, 191, 0.75), rgba(191, 191, 191, 0.25));
 }
+
+.mac-hud .box {
+	padding: 10px;
+}

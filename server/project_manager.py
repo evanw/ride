@@ -5,9 +5,11 @@ import yaml
 from library import *
 from project import *
 from channel import Listener
+from deploythread import DeployThread
 
 class ProjectServer(Listener):
     def __init__(self, path):
+        self.deploy_thread = None
         self.project = Project(path)
         self.subscribe('project', self.project.name, 'nodes', 'request')
         self.subscribe('project', self.project.name, 'node', 'update')
@@ -15,6 +17,8 @@ class ProjectServer(Listener):
         self.subscribe('project', self.project.name, 'node', 'remove')
         self.subscribe('project', self.project.name, 'node', 'connect')
         self.subscribe('project', self.project.name, 'node', 'disconnect')
+        self.subscribe('project', self.project.name, 'deploy', 'run')
+        self.subscribe('project', self.project.name, 'deploy', 'stop')
 
     def on_message(self, channel, data):
         if channel == ('project', self.project.name, 'nodes', 'request'):
@@ -29,6 +33,20 @@ class ProjectServer(Listener):
             self.project.add_connection(data)
         elif channel == ('project', self.project.name, 'node', 'disconnect'):
             self.project.remove_connection(data)
+        elif channel == ('project', self.project.name, 'deploy', 'run'):
+            self.run(data)
+        elif channel == ('project', self.project.name, 'deploy', 'stop'):
+            self.stop()
+
+    def run(self, json):
+        self.stop()
+        self.deploy_thread = DeployThread('138.16.109.109', 'obot', 'obot', self.project)
+        self.deploy_thread.start()
+
+    def stop(self):
+        if self.deploy_thread:
+            self.deploy_thread.kill()
+            self.deploy_thread = None
 
 def makedirs(dirs):
     try:

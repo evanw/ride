@@ -1,3 +1,7 @@
+function text2html(text) {
+	return ('' + text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>').replace(/  /g, '&nbsp; ');
+}
+
 $(window).load(function() {
 	var editor = $('iframe')[0].contentWindow.editor;
 	$('iframe').focus();
@@ -5,6 +9,15 @@ $(window).load(function() {
 	// tell the iframe about the project url
 	var projectName = /^\/project\/(\w+)\/?$/.exec(location.pathname)[1];
 	editor.setProjectName(projectName);
+
+	// create the deploy status window
+	var deployStatus = new HUD(document.body, 'Deploy Status');
+	deployStatus.setButtons([
+		new HUD.DefaultButton('Close', function() {
+			deployStatus.hide();
+		})
+	]);
+	var totalStatus = '';
 
 	// create the toolbar buttons
 	var contents = [
@@ -14,9 +27,25 @@ $(window).load(function() {
 			else library.show();
 			window.focus();
 		}),
-		new Toolbar.Button('Run', '/static/images/run.png'),
-		new Toolbar.Button('Stop', '/static/images/stop.png').setEnabled(false)
+		new Toolbar.Button('Run', '/static/images/run.png').click(function() {
+			channel('project', projectName, 'deploy', 'run').publish({});
+			deployStatus.show();
+			totalStatus = 'Loading...';
+			deployStatus.setContents([
+				new HUD.Box(totalStatus)
+			]);
+		}),
+		new Toolbar.Button('Stop', '/static/images/stop.png').click(function() {
+			channel('project', projectName, 'deploy', 'stop').publish({});
+			// deployStatus.hide();
+		})
 	];
+	channel('project', projectName, 'deploy', 'status').subscribe(function(json) {
+		totalStatus += text2html('\n' + json['text']);
+		deployStatus.setContents([
+			new HUD.Box(totalStatus)
+		]);
+	});
 
 	// add the buttons to a toolbar
 	var toolbar = new Toolbar();

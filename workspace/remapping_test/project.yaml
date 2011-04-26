@@ -1,0 +1,61 @@
+nodes:
+- chdir: false
+  exec: send.py
+  id: ''
+  inputs: []
+  name: Sender
+  outputs:
+  - connections: ['2']
+    id: '1'
+    name: foo
+    type: null
+  params: []
+  pkg: remapping_test
+  remap: []
+  x: 0
+  y: 0
+- chdir: false
+  exec: recv.py
+  id: ''
+  inputs:
+  - connections: ['1']
+    id: '2'
+    name: bar
+    type: null
+  name: Receiver
+  outputs: []
+  params: []
+  pkg: remapping_test
+  remap: []
+  x: 0
+  y: 0
+- chdir: false
+  exec: send.py
+  id: ''
+  inputs: []
+  name: Sender
+  outputs:
+  - connections: ['4']
+    id: '3'
+    name: foo
+    type: null
+  params: []
+  pkg: remapping_test
+  remap: []
+  x: 0
+  y: 0
+- chdir: false
+  exec: recv.py
+  id: ''
+  inputs:
+  - connections: ['3']
+    id: '4'
+    name: bar
+    type: null
+  name: Receiver
+  outputs: []
+  params: []
+  pkg: remapping_test
+  remap: []
+  x: 0
+  y: 0

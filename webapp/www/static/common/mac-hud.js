@@ -48,7 +48,11 @@ HUD.prototype.updateHTML = function() {
 	html += '<div class="rowlist">';
 	for (var i = 0; i < this.contents.length; i++) {
 		var row = this.contents[i];
-		html += '<div id="' + row.id + '" class="row' + (i == this.selectionIndex ? ' selected' : '') + '">' + row.html + '</div>';
+		if (row instanceof HUD.Row) {
+			html += '<div id="' + row.id + '" class="row' + (i == this.selectionIndex ? ' selected' : '') + '">' + row.html + '</div>';
+		} else if (row instanceof HUD.Box) {
+			html += '<div id="' + row.id + '" class="box">' + row.html + '</div>';
+		}
 	}
 	html += '</div>';
 	html += '<div class="buttonbar">';
@@ -112,6 +116,12 @@ HUD.prototype.hide = function() {
 };
 
 HUD.Row = function(html) {
+	this.html = html;
+	this.element = null;
+	this.id = makeID();
+};
+
+HUD.Box = function(html) {
 	this.html = html;
 	this.element = null;
 	this.id = makeID();
