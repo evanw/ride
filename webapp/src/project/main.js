@@ -2,7 +2,7 @@ function text2html(text) {
 	return ('' + text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>').replace(/  /g, '&nbsp; ');
 }
 
-var robot_ip = '127.0.0.1';
+var robot_ip = '10.0.0.1';
 var username = 'obot';
 var password = 'obot';
 

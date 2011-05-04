@@ -16,7 +16,7 @@ class DeployThread(Thread):
         self.user = user
         self.password = password
         self.project = project
-        self.remote_deploy_path = '/home/obot/deploy'
+        self.remote_deploy_path = '~/ride_deploy'
         self.die = False
 
     def kill(self):
@@ -33,6 +33,12 @@ class DeployThread(Thread):
             listener = Listener()
             def log(text):
                 listener.publish(('project', self.project.name, 'deploy', 'status'), { 'text': text })
+
+            # prevent accidentally deploying on the server itself
+            # (this doesn't prevent deploying to the server's public
+            # IP address, so there's still a security problem here)
+            if self.host in ['127.0.0.1', '0.0.0.0']:
+                raise Exception('you\'re trying to deploy to the server!')
 
             # create temporary build file
             path = os.path.join(tempfile.mkdtemp(), 'deploy.launch')
