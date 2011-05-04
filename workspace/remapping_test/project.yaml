@@ -1,7 +1,7 @@
 nodes:
 - chdir: false
   exec: send.py
-  id: ''
+  id: '1'
   inputs: []
   name: Sender
   outputs:
@@ -12,11 +12,11 @@ nodes:
   params: []
   pkg: remapping_test
   remap: []
-  x: 0
-  y: 0
+  x: 79
+  y: 94
 - chdir: false
   exec: recv.py
-  id: ''
+  id: '2'
   inputs:
   - connections: ['1']
     id: '2'
@@ -27,11 +27,11 @@ nodes:
   params: []
   pkg: remapping_test
   remap: []
-  x: 0
-  y: 0
+  x: 355
+  y: 130
 - chdir: false
   exec: send.py
-  id: ''
+  id: '3'
   inputs: []
   name: Sender
   outputs:
@@ -42,11 +42,11 @@ nodes:
   params: []
   pkg: remapping_test
   remap: []
-  x: 0
-  y: 0
+  x: 85
+  y: 203
 - chdir: false
   exec: recv.py
-  id: ''
+  id: '4'
   inputs:
   - connections: ['3']
     id: '4'
@@ -57,5 +57,5 @@ nodes:
   params: []
   pkg: remapping_test
   remap: []
-  x: 0
-  y: 0
+  x: 361
+  y: 227

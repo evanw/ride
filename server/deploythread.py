@@ -1,5 +1,5 @@
 from threading import Thread
-from paramiko import SSHClient
+from paramiko import SSHClient, AutoAddPolicy
 from scp import SCPClient
 from channel import Listener
 import tempfile
@@ -44,6 +44,7 @@ class DeployThread(Thread):
             log('Connecting to %s@%s...' % (self.user, self.host))
             ssh = SSHClient()
             ssh.load_system_host_keys()
+            ssh.set_missing_host_key_policy(AutoAddPolicy())
             ssh.connect(self.host, username=self.user, password=self.password)
             log('Connected to remote machine')
 
