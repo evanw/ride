@@ -52,6 +52,8 @@ HUD.prototype.updateHTML = function() {
 			html += '<div id="' + row.id + '" class="row' + (i == this.selectionIndex ? ' selected' : '') + '">' + row.html + '</div>';
 		} else if (row instanceof HUD.Box) {
 			html += '<div id="' + row.id + '" class="box">' + row.html + '</div>';
+		} else if (row instanceof HUD.Textbox) {
+			html += '<div class="textbox">' + row.label + ': <input id="' + row.id + '" type="text" value="' + row.text + '" /></div>';
 		}
 	}
 	html += '</div>';
@@ -67,14 +69,23 @@ HUD.prototype.updateHTML = function() {
 	for (var i = 0; i < this.contents.length; i++) {
 		var row = this.contents[i];
 		row.element = document.getElementById(row.id);
-		(function(i) {
-			$(row.element).mousedown(function() {
-				this_.setSelectionIndex(i);
+		if (row instanceof HUD.Row) {
+			(function(i) {
+				$(row.element).mousedown(function() {
+					this_.setSelectionIndex(i);
+				});
+			})(i);
+			$(row.element).dblclick(function() {
+				this_.defaultAction();
 			});
-		})(i);
-		$(row.element).dblclick(function() {
-			this_.defaultAction();
-		});
+		} else if (row instanceof HUD.Textbox) {
+			(function(row) {
+				$(row.element).bind('input', function() {
+					row.text = row.element.value;
+					row.callback(row);
+				});
+			})(row);
+		}
 	}
 	for (var i = 0; i < this.buttons.length; i++) {
 		var button = this.buttons[i];
@@ -88,11 +99,17 @@ HUD.prototype.updateHTML = function() {
 
 HUD.prototype.setSelectionIndex = function(selectionIndex) {
 	if (this.selectionIndex >= 0 && this.selectionIndex < this.contents.length) {
-		document.getElementById(this.contents[this.selectionIndex].id).className = 'row';
+		var selected = this.contents[this.selectionIndex];
+		if (selected instanceof HUD.Row) {
+			document.getElementById(selected.id).className = 'row';
+		}
 	}
 	this.selectionIndex = selectionIndex;
 	if (this.selectionIndex >= 0 && this.selectionIndex < this.contents.length) {
-		document.getElementById(this.contents[this.selectionIndex].id).className = 'selected row';
+		var selected = this.contents[this.selectionIndex];
+		if (selected instanceof HUD.Row) {
+			document.getElementById(selected.id).className = 'selected row';
+		}
 	}
 };
 
@@ -123,6 +140,14 @@ HUD.Row = function(html) {
 
 HUD.Box = function(html) {
 	this.html = html;
+	this.element = null;
+	this.id = makeID();
+};
+
+HUD.Textbox = function(label, text, callback) {
+	this.label = label;
+	this.text = text;
+	this.callback = callback;
 	this.element = null;
 	this.id = makeID();
 };

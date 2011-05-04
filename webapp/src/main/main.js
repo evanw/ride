@@ -34,7 +34,7 @@ function updateProjectList(projects) {
 
 $(window).load(function() {
 	var contents = [
-		new Toolbar.Button('Settings', '/static/images/settings.png').floatRight()
+		new Toolbar.Button('Settings', '/static/images/settings.png').floatRight().setEnabled(false)
 	];
 
 	$('.project-link').live('click', function() {

@@ -94,3 +94,7 @@ body {
 .mac-hud .box {
 	padding: 10px;
 }
+
+.mac-hud .textbox {
+	padding: 0 10px;
+}

@@ -40,7 +40,7 @@ class ProjectServer(Listener):
 
     def run(self, json):
         self.stop()
-        self.deploy_thread = DeployThread('138.16.109.109', 'obot', 'obot', self.project)
+        self.deploy_thread = DeployThread(json['ip'], json['user'], json['pass'], self.project)
         self.deploy_thread.start()
 
     def stop(self):

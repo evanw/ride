@@ -60,16 +60,30 @@ Node.prototype.update = function(name, value) {
 };
 
 Node.prototype.generatePopupHTML = function() {
-	// TODO: this will be different obviously, just for testing right now
+	var properties = [ 'name', 'pkg', 'exec' ];
+	var labels = [ 'Name', 'Package', 'Executable' ];
 	var html = '';
 	html += '<table>';
-	for (var name in this) {
-		if (this.hasOwnProperty(name)) {
-			html += '<tr><td>' + name + '</td><td><input type="text" value="' + (this[name] + '').toHTML() + '"></td></tr>';
-		}
+	for (var i = 0; i < properties.length; i++) {
+		var name = properties[i];
+		var id = 'node' + this.id + '-prop' + i;
+		html += '<tr><td>' + labels[i] + ':</td><td><input type="text" id="' + id + '" value="' + ((name in this ? this[name] : this.extras[name]) + '').toHTML() + '"></td></tr>';
 	}
 	html += '</table>';
 	return html;
+};
+
+Node.prototype.bindPopupCallbacks = function() {
+	// var this_ = this;
+	// $('#node' + this.id + '-prop0').bind('input', function(e) {
+	// 	editor.doc.updateNode(this_, 'name', e.target.value);
+	// });
+	// $('#node' + this.id + '-prop1').bind('input', function(e) {
+	// 	editor.doc.updateNode(this_, 'pkg', e.target.value);
+	// });
+	// $('#node' + this.id + '-prop2').bind('input', function(e) {
+	// 	editor.doc.updateNode(this_, 'exec', e.target.value);
+	// });
 };
 
 Node.prototype.createElement = function() {
@@ -95,7 +109,7 @@ Node.prototype.updateRects = function() {
 	this.element.style.top = this.y + 'px';
 
 	this.rect = Rect.getFromElement(this.element, true);
-	this.editRect = Rect.getFromElement($(this.element).find('.edit-link span')[0], false);
+	this.editRect = new Rect(0, 0, 0, 0);//Rect.getFromElement($(this.element).find('.edit-link span')[0], false);
 
 	for (var i = 0; i < this.inputs.length; i++) {
 		var input = this.inputs[i];
@@ -112,7 +126,7 @@ Node.prototype.updateRects = function() {
 
 Node.prototype.generateHTML = function() {
 	var this_ = this;
-	var html = '<table><tr><td class="title">' + this.name + '</td><td class="edit-link"><span>edit</span></td></tr></table>';
+	var html = '<table><tr><td class="title">' + this.name + '</td>' + /*'<td class="edit-link"><span>edit</span></td>' +*/ '</tr></table>';
 	html += '<table><tr><td>';
 
 	// inputs to html
@@ -149,6 +163,7 @@ Node.prototype.generateHTML = function() {
 Node.prototype.showPopup = function() {
 	this.popup.setHTML(this.generatePopupHTML());
 	this.popup.show();
+	this.bindPopupCallbacks();
 };
 
 Node.prototype.hidePopup = function() {
