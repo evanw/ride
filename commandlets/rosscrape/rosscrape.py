@@ -61,7 +61,7 @@ def scrape_pkgs(repo):
     repo_pkgs = dict()
     count = 0
     for match in re.finditer('\?name=([^"]+)">.+?</a></td><td>([^<]+)<', repo_pkgs_data, re.DOTALL):
-        if WIDTH > 0 && count >= WIDTH:
+        if WIDTH > 0 and count >= WIDTH:
             break
         pkg = match.group(1)
         repo_pkgs[pkg] = scrape_pkg_info(pkg)
@@ -78,7 +78,7 @@ def scrape_repos():
     # Find lines listing repositories, and scrape the data off their pages.
     count = 0
     for match in re.finditer('repo_host=([^"]+)"', ros_repos_data):
-        if WIDTH > 0 && count >= WIDTH:
+        if WIDTH > 0 and count >= WIDTH:
             break
         ros_repos[match.group(1)] = scrape_pkgs(match.group(1))
         count += 1
