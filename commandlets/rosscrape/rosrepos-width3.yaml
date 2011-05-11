@@ -1,0 +1,112 @@
+ais-bonn-ros-pkg:
+  mocap_optitrack:
+    author: !!python/str "Kathrin Gr\xE4ve/graeve@ais.uni-bonn.de"
+    deps:
+    - roscpp
+    - tf
+    desc: "<p>\n    This package contains a node that translates motion capture data\
+      \ from an OptiTrack rig to tf transforms.\n    The node receives the binary\
+      \ packages that are streamed by the Arena software,\n    decodes them and broadcasts\
+      \ the poses of rigid bodies as tf transforms.\n    </p>\n    <p>\n    Currently,\
+      \ this node supports the NatNet streaming protocol v1.4.\n    </p>\n    <p>\n\
+      \    Copyright (c) 2010, University of Bonn, Computer Science Institute VI<br/>\n\
+      \    All rights reserved.\n    </p>"
+    license: BSD
+    shortdesc: Streaming of OptiTrack mocap data to tf
+    source: http://ais-bonn-ros-pkg.googlecode.com/svn/trunk/stacks/ais_bonn_drivers/mocap_optitrack
+    website: http://ros.org/wiki/mocap_optitrack
+  octreelib:
+    author: Joerg Stueckler
+    deps:
+    - roscpp
+    - pcl
+    - pcl_ros
+    - sensor_msgs
+    - visualization_msgs
+    - eigen
+    - dynamic_reconfigure
+    - nodelet
+    desc: "The octreelib contains an octree implementation that is templated for coordinate\
+      \ and value type. \n     It features fast sampling and value aggregation on\
+      \ many resolutions in parallel.\n     The implementation is specifically suited\
+      \ for fast volume queries of integral or extremum values."
+    license: BSD
+    shortdesc: The octreelib contains an octree implementation that is templated for
+      coordinate and value ty...
+    source: http://ais-bonn-ros-pkg.googlecode.com/svn/trunk/stacks/ais_bonn_pcl_addons/octreelib
+    website: http://ros.org/wiki/octreelib
+  roomrider_driver:
+    author: Andreas Hochrath, Torsten Fiolka
+    deps:
+    - roscpp
+    - geometry_msgs
+    - nav_msgs
+    - tf
+    - joy
+    desc: "This driver controls the iRobot Roomba 530 from our roomrider platform.\
+      \ It has been developed for a robotics lab at\n\tthe Autonomous Intelligent\
+      \ Systems department at Bonn University."
+    license: GPL
+    shortdesc: Driver for the Roomrider platform
+    source: http://ais-bonn-ros-pkg.googlecode.com/svn/trunk/stacks/ais_bonn_drivers/roomrider_driver
+    website: http://www.ros.org/wiki/roomrider_driver/
+ajh-ros-pkg:
+  cmucam_png:
+    author: Andrew Harris
+    deps:
+    - std_msgs
+    - sensor_msgs
+    - rospy
+    - roscpp
+    desc: cmucam_png
+    license: BSD
+    shortdesc: cmucam_png
+    source: https://ajh-ros-pkg.svn.sourceforge.net/svnroot/ajh-ros-pkg/trunk/cmucam_png
+    website: http://ros.org/wiki/cmucam_png
+  pmad:
+    author: Andrew Harris
+    deps:
+    - std_msgs
+    - rospy
+    - roscpp
+    desc: "The PMAD (power management and distribution) node provides access\n   \
+      \  to digital outputs and analog inputs on an Arduino."
+    license: BSD
+    shortdesc: Access analog inputs and digital outputs on the Arduino.
+    source: https://ajh-ros-pkg.svn.sourceforge.net/svnroot/ajh-ros-pkg/trunk/pmad
+    website: http://ros.org/wiki/pmad
+albany-ros-pkg:
+  2dnav_create:
+    author: Michael E. Ferguson
+    deps:
+    - irobot_create_2_1
+    - hokuyo_node
+    - move_base
+    - tf
+    desc: Launch files to bring up an iRobot Create with hokoyu laser.
+    license: BSD
+    shortdesc: 2dnav_create
+    source: http://albany-ros-pkg.googlecode.com/svn/trunk/albany_nav/2dnav_create
+    website: http://ros.org/wiki/2dnav_create
+  2dnav_neato:
+    author: Michael Ferguson
+    deps: []
+    desc: This package contains configuration and launch files for using the navigation
+      stack with the Neato XV-11 robot.
+    license: BSD
+    shortdesc: Navigation stuff for use with the Neato XV-11
+    source: http://albany-ros-pkg.googlecode.com/svn/trunk/neato_robot/2dnav_neato
+    website: http://ros.org/wiki/2dnav_neato
+  albany_common:
+    author: Michael E. Ferguson
+    deps:
+    - rospy
+    - usb_cam
+    - sensor_msgs
+    - geometry_msgs
+    desc: Description and launch files for common hardware in the ILS Social Robotics
+      Lab.
+    license: BSD
+    shortdesc: Common files for the ILS Social Robotics Lab
+    source: http://albany-ros-pkg.googlecode.com/svn/trunk/albany_robots/albany_common
+    website: http://ros.org/wiki/albany_common
