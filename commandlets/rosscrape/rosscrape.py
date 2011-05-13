@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
-import urllib2
+import time
 import re
+import urllib2
 
 from yaml import dump as yaml_dump
 try:
@@ -14,11 +15,16 @@ except ImportError:
 # packages in those repos will be processed.  Setting WIDTH to a non-positive
 # value causes _ALL_ repos and packages to be processed.  THIS IS SLOW AND
 # BANDWIDTH INTENSIVE - use infrequently.
-WIDTH = 3
+WIDTH = 2
+
+# This function ensures we don't flood the server with requests when scraping.
+def fetch(url):
+    time.sleep(1.5)
+    return urllib2.urlopen(url)
 
 # This scrapes the package's details page for more detailed package info.
 def scrape_pkg_info(pkg):
-    pkg_info_data = urllib2.urlopen('http://www.ros.org/browse/details.php?name=' + pkg).read()
+    pkg_info_data = fetch('http://www.ros.org/browse/details.php?name=' + pkg).read()
     pkg_info = dict()
     match = re.search("""
                       Author\(s\):</b>([^<]+)</p>
@@ -57,7 +63,7 @@ def scrape_pkg_info(pkg):
 # downloads the short descriptions, as they are easier to scrape here
 # than on the package's page.
 def scrape_pkgs(repo):
-    repo_pkgs_data = urllib2.urlopen('http://www.ros.org/browse/repo.php?repo_host=' + repo).read()
+    repo_pkgs_data = fetch('http://www.ros.org/browse/repo.php?repo_host=' + repo).read()
     repo_pkgs = dict()
     count = 0
     for match in re.finditer('\?name=([^"]+)">.+?</a></td><td>([^<]+)<', repo_pkgs_data, re.DOTALL):
@@ -73,7 +79,7 @@ def scrape_pkgs(repo):
 # data in a "yaml-friendly" format.
 def scrape_repos():
     # Grab the source of the repo list page.
-    ros_repos_data = urllib2.urlopen('http://www.ros.org/browse/repo_list.php').read()
+    ros_repos_data = fetch('http://www.ros.org/browse/repo_list.php').read()
     ros_repos = dict()
     # Find lines listing repositories, and scrape the data off their pages.
     count = 0
