@@ -26,16 +26,18 @@ WIDTH = 0
 
 # This function ensures we don't flood the server with requests when scraping.
 def fetch(url):
-    time.sleep(1.5)
+    time.sleep(3.0)
     return urllib2.urlopen(url)
 
 # This scrapes the package's details page for more detailed package info.
-def scrape_pkg_info(pkg):
-    if verbose: sys.stdout.write('    Fetching data for ' + pkg + '...'); sys.stdout.flush()
+def scrape_pkg_info(pkg, num, numpkgs):
+    if WIDTH > 0 and WIDTH < numpkgs:
+        numpkgs = WIDTH
+    if verbose: sys.stdout.write('    Fetching data for %s... [%d of %d]' % (pkg, num, numpkgs)); sys.stdout.flush()
     pkg_info_data = fetch('http://www.ros.org/browse/details.php?name=' + pkg).read()
     
     pkg_info = dict()
-    if verbose: sys.stdout.write('\r    Scraping data for ' + pkg + '...'); sys.stdout.flush()
+    if verbose: sys.stdout.write('\r    Scraping data for %s... [%d of %d]' % (pkg, num, numpkgs)); sys.stdout.flush()
     match = re.search("""
                       Author\(s\):</b>([^<]+)</p>
                       .+?
@@ -47,7 +49,7 @@ def scrape_pkg_info(pkg):
                       """, pkg_info_data, re.VERBOSE | re.DOTALL | re.UNICODE)
     if not match:
         if verbose: sys.stdout.write('\n')
-        print('    Error getting package data for "' + pkg + '"!')
+        print('    Error getting package data for "%s"!' % pkg)
         return pkg_info
     
     groups = match.groups()
@@ -56,38 +58,41 @@ def scrape_pkg_info(pkg):
     pkg_info['website'] = groups[2].strip()
     pkg_info['source'] = groups[3].strip()
     
-    if verbose: sys.stdout.write('\r    Scraping dependencies for ' + pkg + '...'); sys.stdout.flush()
+    if verbose: sys.stdout.write('\r    Scraping dependencies for %s... [%d of %d]' % (pkg, num, numpkgs)); sys.stdout.flush()
     deps = []
     for match2 in re.finditer('name=([^"]+)"', pkg_info_data[match.end():]):
         deps.append(match2.group(1))
         match = match2
     pkg_info['deps'] = deps
     
-    if verbose: sys.stdout.write('\r    Scraping description for ' + pkg + '...'); sys.stdout.flush()
+    if verbose: sys.stdout.write('\r    Scraping description for %s... [%d of %d]' % (pkg, num, numpkgs)); sys.stdout.flush()
     match3 = re.search('Description:</b>(.+?)</p>\s*<hr />' , pkg_info_data[match.end():], re.DOTALL)
     
     if not match3:
         if verbose: sys.stdout.write('\n')
-        print('    Error getting package description for "' + pkg + '"!')
+        print('    Error getting package description for "%s"!' % pkg)
         return pkg_info
     pkg_info['desc'] = match3.group(1).strip()
-    if verbose: print('\r    Scraped info for ' + pkg + '...         ')
+    if verbose: print('\r    Scraped info for %s... [%d of %d]         ' % (pkg, num, numpkgs))
     return pkg_info
 
 # This scrapes the list of packages for the given repository.  It also
 # downloads the short descriptions, as they are easier to scrape here
 # than on the package's page.
-def scrape_pkgs(repo):
-    if verbose: print('Scraping package list for ' + repo + '...')
+def scrape_pkgs(repo, num, numrepos):
+    if WIDTH > 0 and WIDTH < numrepos:
+        numrepos = WIDTH
+    if verbose: print('Scraping package list for %s... [%d of %d]' % (repo, num, numrepos))
     repo_pkgs_data = fetch('http://www.ros.org/browse/repo.php?repo_host=' + repo).read()
     repo_pkgs = dict()
     count = 0
-    for match in re.finditer('\?name=([^"]+)">.+?</a></td><td>([^<]+)<', repo_pkgs_data, re.DOTALL):
+    matches = re.findall('\?name=([^"]+)">.+?</a></td><td>([^<]+)<', repo_pkgs_data, re.DOTALL)
+    for pkgnum in range(len(matches)):
         if WIDTH > 0 and count >= WIDTH:
             break
-        pkg = match.group(1)
-        repo_pkgs[pkg] = scrape_pkg_info(pkg)
-        repo_pkgs[pkg]['shortdesc'] = match.group(2).strip()
+        pkg = matches[pkgnum][0]
+        repo_pkgs[pkg] = scrape_pkg_info(pkg, pkgnum + 1, len(matches))
+        repo_pkgs[pkg]['shortdesc'] = matches[pkgnum][1].strip()
         count += 1
     return repo_pkgs
 
@@ -100,10 +105,12 @@ def scrape_repos():
     ros_repos = dict()
     # Find lines listing repositories, and scrape the data off their pages.
     count = 0
-    for match in re.finditer('repo_host=([^"]+)"', ros_repos_data):
+    matches = re.findall('repo_host=([^"]+)"', ros_repos_data)
+    for reponum in range(len(matches)):
+    #for match in re.finditer('repo_host=([^"]+)"', ros_repos_data):
         if WIDTH > 0 and count >= WIDTH:
             break
-        ros_repos[match.group(1)] = scrape_pkgs(match.group(1))
+        ros_repos[matches[reponum]] = scrape_pkgs(matches[reponum], reponum + 1, len(matches))
         count += 1
     
     return ros_repos
@@ -152,7 +159,7 @@ def main(options):
         conn.close()
 
 if __name__ == "__main__":
-    parser = OptionParser(version='rosscrape beta 0.7')
+    parser = OptionParser(version='rosscrape beta 0.7b')
     parser.add_option('-v', '--verbose', dest='verbose', action='store_true', \
                       help='Enable verbose output.')
     parser.add_option('-w', '--width', dest='width', action='store', type='int', \
