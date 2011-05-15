@@ -1,8 +1,12 @@
 #!/usr/bin/env python
 
+# TODO: Some package descriptions aren't being scraped correctly.  Seems to
+#       occur when the final </p> is followed by <hr /> on a line by itself.
+
 import sys
 import time
 import re
+import random as rand
 import urllib2
 
 from optparse import OptionParser, OptionGroup
@@ -26,18 +30,19 @@ WIDTH = 0
 
 # This function ensures we don't flood the server with requests when scraping.
 def fetch(url):
-    time.sleep(3.0)
+    s_time = 15.0 + 7.0 * (rand.random() - 0.5)
+    time.sleep(s_time)
     return urllib2.urlopen(url)
 
 # This scrapes the package's details page for more detailed package info.
 def scrape_pkg_info(pkg, num, numpkgs):
     if WIDTH > 0 and WIDTH < numpkgs:
         numpkgs = WIDTH
-    if verbose: sys.stdout.write('    Fetching data for %s... [%d of %d]' % (pkg, num, numpkgs)); sys.stdout.flush()
+    if verbose: sys.stdout.write('    Fetching data for %s... [%d/%d]' % (pkg, num, numpkgs)); sys.stdout.flush()
     pkg_info_data = fetch('http://www.ros.org/browse/details.php?name=' + pkg).read()
     
     pkg_info = dict()
-    if verbose: sys.stdout.write('\r    Scraping data for %s... [%d of %d]' % (pkg, num, numpkgs)); sys.stdout.flush()
+    if verbose: sys.stdout.write('\r    Scraping data for %s... [%d/%d]' % (pkg, num, numpkgs)); sys.stdout.flush()
     match = re.search("""
                       Author\(s\):</b>([^<]+)</p>
                       .+?
@@ -58,14 +63,14 @@ def scrape_pkg_info(pkg, num, numpkgs):
     pkg_info['website'] = groups[2].strip()
     pkg_info['source'] = groups[3].strip()
     
-    if verbose: sys.stdout.write('\r    Scraping dependencies for %s... [%d of %d]' % (pkg, num, numpkgs)); sys.stdout.flush()
+    if verbose: sys.stdout.write('\r    Scraping dependencies for %s... [%d/%d]' % (pkg, num, numpkgs)); sys.stdout.flush()
     deps = []
     for match2 in re.finditer('name=([^"]+)"', pkg_info_data[match.end():]):
         deps.append(match2.group(1))
         match = match2
     pkg_info['deps'] = deps
     
-    if verbose: sys.stdout.write('\r    Scraping description for %s... [%d of %d]' % (pkg, num, numpkgs)); sys.stdout.flush()
+    if verbose: sys.stdout.write('\r    Scraping description for %s... [%d/%d]' % (pkg, num, numpkgs)); sys.stdout.flush()
     match3 = re.search('Description:</b>(.+?)</p>\s*<hr />' , pkg_info_data[match.end():], re.DOTALL)
     
     if not match3:
@@ -73,7 +78,7 @@ def scrape_pkg_info(pkg, num, numpkgs):
         print('    Error getting package description for "%s"!' % pkg)
         return pkg_info
     pkg_info['desc'] = match3.group(1).strip()
-    if verbose: print('\r    Scraped info for %s... [%d of %d]         ' % (pkg, num, numpkgs))
+    if verbose: print('\r    Scraped info for %s... [%d/%d]         ' % (pkg, num, numpkgs))
     return pkg_info
 
 # This scrapes the list of packages for the given repository.  It also
@@ -82,7 +87,7 @@ def scrape_pkg_info(pkg, num, numpkgs):
 def scrape_pkgs(repo, num, numrepos):
     if WIDTH > 0 and WIDTH < numrepos:
         numrepos = WIDTH
-    if verbose: print('Scraping package list for %s... [%d of %d]' % (repo, num, numrepos))
+    if verbose: print('Scraping package list for %s... [%d/%d]' % (repo, num, numrepos))
     repo_pkgs_data = fetch('http://www.ros.org/browse/repo.php?repo_host=' + repo).read()
     repo_pkgs = dict()
     count = 0
@@ -115,6 +120,49 @@ def scrape_repos():
     
     return ros_repos
 
+# Write the data to a sqlite database.
+def gendb(data):
+    # Create a sqlite database - rosrepos.sqlite.
+    conn = sqlite3.connect('rosrepos.sqlite')
+    conn.text_factory = lambda x: unicode(x, 'utf-8', 'ignore')
+    c = conn.cursor()
+    # Delete any old data in the table.
+    try:
+        c.execute('drop table packages')
+    except sqlite3.OperationalError:
+        pass
+    # Create the table for the data.
+    c.execute('''create table packages
+                (pkg text unique primary key, repo text, author text,
+                deps text, desc text, license text,
+                shortdesc text, source text, website text)''')
+    
+    # Enter the data into the table.
+    for repo in data.keys():
+        for pkg in data[repo].keys():
+            d = data[repo][pkg]
+            
+            # Ensure that all keys have 
+            for key in {'author', 'desc', 'license', 'source', 'website', 'shortdesc'}:
+                d[key] = d[key] if key in d and d[key] else None
+            d['deps'] = ' '.join(d['deps']) if 'deps' in d and d['deps'] else None
+            
+            # Convert 8-bit bytestrings to unicode strings.
+            for key in d.keys():
+                if type(d[key]) == str:
+                    d[key] = unicode(d[key], 'latin')
+            
+            # Insert values into database.
+            c.execute('insert into packages values (?,?,?,?,?,?,?,?,?)', \
+                        (pkg, repo, d['author'], d['deps'], d['desc'], \
+                        d['license'], d['shortdesc'], d['source'], d['website']))
+    
+    # Commit the changes to the table, and close everything up.
+    conn.commit()
+    c.close()
+    conn.close()
+    
+
 # Scrape all of the data on repositories, convert it to yaml, and print it out.
 def main(options):
     global verbose, WIDTH
@@ -127,39 +175,13 @@ def main(options):
         # Open the output file.
         output = open('rosrepos.yaml', 'w')
         # Convert the data to yaml and write it to the output file.
-        yaml_data = yaml_dump(scrape_data, default_flow_style=False)
-        output.write(yaml_data)
+        output.write(yaml_dump(scrape_data, default_flow_style=False))
     if options.sqlite:
         if verbose: print('Writing scraped data to rosrepos.sqlite...')
-        # Create a sqlite database - rosrepos.sqlite.
-        conn = sqlite3.connect('rosrepos.sqlite')
-        c = conn.cursor()
-        # Delete any old data in the table.
-        try:
-            c.execute('drop table packages')
-        except sqlite3.OperationalError:
-            pass
-        # Create the table for the data.
-        c.execute('''create table packages
-                    (pkg text, repo text, author text,
-                    deps text, desc text, license text,
-                    shortdesc text, source text, website text)''')
-        
-        # Enter the data into the table.
-        for repo in scrape_data.keys():
-            for pkg in scrape_data[repo].keys():
-                data = scrape_data[repo][pkg]
-                c.execute('insert into packages values (?,?,?,?,?,?,?,?,?)', \
-                            (pkg, repo, data['author'], ' '.join(data['deps']), data['desc'], \
-                            data['license'], data['shortdesc'], data['source'], data['website']))
-        
-        # Commit the changes to the table, and close everything up.
-        conn.commit()
-        c.close()
-        conn.close()
+        gendb(scrape_data)
 
 if __name__ == "__main__":
-    parser = OptionParser(version='rosscrape beta 0.7b')
+    parser = OptionParser(version='rosscrape beta 0.8a')
     parser.add_option('-v', '--verbose', dest='verbose', action='store_true', \
                       help='Enable verbose output.')
     parser.add_option('-w', '--width', dest='width', action='store', type='int', \
