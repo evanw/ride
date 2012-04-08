@@ -1,0 +1,118 @@
+.GraphBox {
+  position: relative;
+  margin: 0;
+  overflow: auto;
+  width: 800px;
+  height: 600px;
+}
+
+.GraphBox canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.GraphBox table {
+  border-collapse: collapse;
+}
+
+.GraphBox td {
+  vertical-align: top;
+}
+
+.GraphBox * {
+  cursor: default;
+  -moz-user-select: -moz-none;
+  -webkit-user-select: none;
+}
+
+.GraphBox .node {
+  font-size: 11px;
+  line-height: 15px;
+  min-width: 150px;
+  position: absolute;
+  border: 1px solid black;
+  padding: 5px 0;
+  background: rgba(31, 31, 31, 0.9);
+  border-radius: 10px;
+  -moz-border-radius: 10px;
+  -webkit-border-radius: 10px;
+  box-shadow: 0 0 5px black;
+  -moz-box-shadow: 0 0 5px black;
+  -webkit-box-shadow: 0 0 5px black;
+}
+
+.GraphBox .node.readonly .title {
+  color: #777;
+}
+
+.GraphBox .node.selected {
+  border: 2px solid yellow;
+  margin: -1px;
+}
+
+.GraphBox table {
+  width: 100%;
+}
+
+.GraphBox td {
+  color: white;
+  padding: 0;
+  margin: 0;
+}
+
+.GraphBox .title {
+  white-space: nowrap;
+  color: white;
+  font-size: 13px;
+  font-weight: bold;
+  padding: 0 10px 5px 10px;
+}
+
+.GraphBox .detail {
+  color: #777;
+  padding: 0 10px 5px 10px;
+}
+
+.GraphBox .input {
+  padding: 0 10px 0 19px;
+}
+
+.GraphBox .output {
+  padding: 0 19px 0 10px;
+  text-align: right;
+}
+
+.GraphBox .bullet {
+  width: 6px;
+  height: 6px;
+  padding: 5px 3px;
+  display: inline-block;
+}
+
+.GraphBox .bullet div {
+  width: 6px;
+  height: 6px;
+  background: white;
+  border-radius: 3px;
+  -moz-border-radius: 3px;
+  -webkit-border-radius: 3px;
+}
+
+.GraphBox .input .bullet {
+  float: left;
+  margin-left: -12px;
+}
+
+.GraphBox .output .bullet {
+  float: right;
+  margin-right: -12px;
+}
+
+.GraphBox .readonly {
+  color: #777;
+}
+
+.GraphBox .readonly .bullet div {
+  background: #777;
+}

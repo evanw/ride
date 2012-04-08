@@ -1,0 +1,18 @@
+<package>
+  <description brief="ride">
+
+     ride
+
+  </description>
+  <author>Evan</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/ride</url>
+
+  <depend package="rosbridge"/>
+  <depend package="std_msgs"/>
+  <depend package="rospy"/>
+
+</package>
+
+

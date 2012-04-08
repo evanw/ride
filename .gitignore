@@ -2,4 +2,7 @@
 *.pyc
 *~
 *.swp
-generated.js
+srv_gen
+msg_gen
+build
+src

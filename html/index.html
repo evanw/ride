@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" href="GraphBox.css">
+    <link rel="stylesheet" href="bootstrap/css/bootstrap.min.css">
+    <script src="ROS.js"></script>
+    <script src="GraphBox.js"></script>
+    <script src="jquery.min.js"></script>
+    <script src="bootstrap/js/bootstrap.min.js"></script>
+    <style>
+       body { overflow: hidden; }
+       .navbar .container { width: 100%; }
+       .navbar .brand { margin-left: -10px; }
+    </style>
+  </head>
+  <body>
+    <div class="navbar navbar-fixed-top" id="navbar">
+      <div class="navbar-inner">
+        <div class="container">
+          <a class="brand">RIDE</a>
+          <form class="navbar-search pull-left" onsubmit="return false">
+            <input id="insert_node" type="text" class="search-query" placeholder="Insert node" autocomplete="off">
+          </form>
+          <ul class="nav pull-right">
+            <li><a id="connection_status" href="javascript:ui.changeConnectionURL()">Disconnected</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div id="change_connection_url" class="modal" style="display:none;">
+      <div class="modal-header">
+        <a class="close" data-dismiss="modal">&times;</a>
+        <h3>Change Connection URL</h3>
+      </div>
+      <div class="modal-body">
+        <p>
+          This app needs to contact two ROS nodes, <b>rosbridge</b> and <b>ride</b>.
+          If they are not already running, please type <code>roslaunch ride.launch</code> in a new terminal.
+        </p>
+        <p>&nbsp;</p>
+        <form class="form-horizontal" onsubmit="javascript:ui.setConnectionURL();return false">
+          <div class="control-group">
+            <label class="control-label" for="new_connection_url">Connection URL</label>
+            <div class="controls"><input type="text" class="input-xlarge" id="new_connection_url"></div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <a class="btn" data-dismiss="modal">Cancel</a>
+        <a href="javascript:ui.setConnectionURL()" class="btn btn-primary">Change URL</a>
+      </div>
+    </div>
+
+    <div id="sidebar" class="sidebar"></div>
+    <script src="script.js"></script>
+  </body>
+</html>
