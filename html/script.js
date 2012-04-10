@@ -50,7 +50,7 @@ var ride = {
     data.map(function(info) {
       var node = ride.graph.node(info.name);
       node.readOnlyFlag = !info.owned;
-      node.detailText = info.running ? '' : 'Not running';
+      node.detailText = ['Starting...', '', 'Stopped'][info.status];
       info.subscribed.map(function(topic) {
         if (!node.input(topic)) {
           var input = new GraphBox.Connection(topic);
@@ -199,6 +199,11 @@ ride.graph.updateBounds();
 var inputWithFocus = null;
 $('input').focus(function() { inputWithFocus = this; });
 $('input').blur(function() { inputWithFocus = null; });
+
+// Deselect input when the graph is clicked
+$(ride.graph.element).click(function() {
+  $('input').blur();
+});
 
 $(document).keydown(function(e) {
   // Delete the selection when backspace or delete is pressed
