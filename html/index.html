@@ -9,6 +9,7 @@
     <script src="bootstrap/js/bootstrap.min.js"></script>
     <style>
        body { overflow: hidden; }
+       .modal { display: none; top: 200px; margin-top: 0; }
        .navbar .container { width: 100%; }
        .navbar .brand { margin-left: -10px; }
        .GraphBox .dropdown { float: right; margin: 0 5px; font-size: 13px; }
@@ -31,7 +32,21 @@
       </div>
     </div>
 
-    <div id="change_connection_url" class="modal" style="display:none;">
+    <div id="terminal_output" class="modal">
+      <div class="modal-header">
+        <a class="close" data-dismiss="modal">&times;</a>
+        <h3>Terminal Output</h3>
+      </div>
+      <div class="modal-body">
+        <p>This is both stdout and stderr:</p>
+        <pre id="terminal_output_data" style="overflow-y: auto; max-height: 200px;"></pre>
+      </div>
+      <div class="modal-footer">
+        <a class="btn btn-primary" data-dismiss="modal">Close</a>
+      </div>
+    </div>
+
+    <div id="change_connection_url" class="modal">
       <div class="modal-header">
         <a class="close" data-dismiss="modal">&times;</a>
         <h3>Change Connection URL</h3>

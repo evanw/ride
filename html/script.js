@@ -30,16 +30,6 @@ var ride = {
   },
 
   updateNodeList: function(data) {
-    var dropdownHTML = '\
-      <div class="dropdown">\
-        <a data-toggle="dropdown"><div class="caret"></div></a>\
-        <ul class="dropdown-menu">\
-          <li><a>See terminal output</a></li>\
-          <li><a>Run rosmake on package</a></li>\
-          <li><a>Change command line arguments</a></li>\
-        </ul>\
-      </div>';
-
     // Create new nodes and remove old nodes
     var existingNodes = {};
     this.graph.nodes.map(function(node) {
@@ -49,9 +39,7 @@ var ride = {
       if (!(info.name in existingNodes)) {
         var node = new GraphBox.Node(info.name)
         ride.graph.addNode(node);
-        if (info.owned) {
-          $(dropdownHTML).prependTo(node.element);
-        }
+        if (info.owned) ui.ownedNodeInserted(node);
       } else {
         delete existingNodes[info.name];
       }
@@ -147,7 +135,27 @@ ROS.connect();
 // UI
 ////////////////////////////////////////////////////////////////////////////////
 
+var dropdownHTML = '\
+  <div class="dropdown">\
+    <a data-toggle="dropdown"><div class="caret"></div></a>\
+    <ul class="dropdown-menu"></ul>\
+  </div>\
+';
+
 var ui = {
+  ownedNodeInserted: function(node) {
+    function item(name, callback) { $('<li><a>' + name + '</a></li>').appendTo(menu).click(callback); }
+    $(dropdownHTML).prependTo(node.element);
+    var menu = $(node.element).find('.dropdown-menu')[0];
+
+    item('Show terminal output', function() {
+      ROS.call('/ride/node/output', { name: node.name }, function(data) {
+        $('#terminal_output_data').text(data.data);
+        $('#terminal_output').modal('show');
+      });
+    });
+  },
+
   changeConnectionURL: function() {
     $('#new_connection_url').val(ROS.url);
     $('#change_connection_url').modal('show');

@@ -40,6 +40,7 @@ class Node:
         self.proc = None
         self.path = None
         self.returnCode = None
+        self.output = ''
 
         # Find the path of the binary (more secure than letting the
         # client do it, especially if the package list is limited)
@@ -56,8 +57,16 @@ class Node:
         if self.proc or not self.path:
             return
 
-        self.proc = subprocess.Popen([self.path, '__name:=' + self.name.replace('/', '')])
+        # Start the node
+        command = [self.path, '__name:=' + self.name.replace('/', '')]
+        self.proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         print 'started node', self.name
+
+        # Make sure self.proc.stdout.read() won't block
+        import fcntl
+        f = self.proc.stdout
+        fcntl.fcntl(f, fcntl.F_SETFL, fcntl.fcntl(f, fcntl.F_GETFL) | os.O_NONBLOCK)
+        self.output = ''
 
     def stop(self):
         if self.proc:
@@ -68,6 +77,10 @@ class Node:
     def update(self):
         if self.proc:
             self.proc.poll()
+            try:
+                self.output += self.proc.stdout.read()
+            except:
+                pass
             if self.proc.returncode is not None:
                 self.returnCode = self.proc.returncode
                 self.proc = None
@@ -110,6 +123,13 @@ def node_stop(request):
         owned_nodes[request.name].stop()
         return ride.srv.NodeStopResponse(request.id, True)
     return ride.srv.NodeStopResponse(request.id, False)
+
+def node_output(request):
+    '''implements the /ride/node/output service'''
+    if request.name in owned_nodes:
+        data = owned_nodes[request.name].output
+        return ride.srv.NodeOutputResponse(request.id, data, True)
+    return ride.srv.NodeOutputResponse(request.id, '', False)
 
 def node_list(request):
     '''implements the /ride/node/list service'''
@@ -234,6 +254,7 @@ def main():
     rospy.Service('/ride/node/start', ride.srv.NodeStart, node_start)
     rospy.Service('/ride/node/stop', ride.srv.NodeStop, node_stop)
     rospy.Service('/ride/node/list', ride.srv.NodeList, node_list)
+    rospy.Service('/ride/node/output', ride.srv.NodeOutput, node_output)
     rospy.Service('/ride/package/list', ride.srv.PackageList, cached_package_list)
     rospy.spin()
 
