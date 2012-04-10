@@ -3,11 +3,14 @@
 var ROS = {
   url: 'ws://' + location.hostname + ':9090',
   socket: null,
+  nextID: 0,
   services: {},
   subscribers: {},
 
   call: function(topic, data, callback) {
-    (this.services[topic] || (this.services[topic] = [])).push(callback);
+    data.id = this.nextID++;
+    var service = (this.services[topic] || (this.services[topic] = {}))
+    service[data.id] = callback || null;
     this.send({ receiver: topic, msg: data });
   },
 
@@ -16,7 +19,8 @@ var ROS = {
   },
 
   subscribe: function(topic, callback) {
-    (this.subscribers[topic] || (this.subscribers[topic] = [])).push(callback);
+    var subscriber = (this.subscribers[topic] || (this.subscribers[topic] = []));
+    subscriber.push(callback);
   },
 
   disconnect: function() {
@@ -29,38 +33,46 @@ var ROS = {
   },
 
   connect: function() {
-    var self = this;
     this.disconnect();
     this.socket = new WebSocket(this.url);
     this.socket.onopen = function() {
-      if (self.onopen) self.onopen();
+      if (ROS.onopen) ROS.onopen();
     };
     this.socket.onclose = function() {
-      self.disconnect();
-      if (self.onclose) self.onclose();
-      setTimeout(function() { self.connect(); }, 500);
+      ROS.disconnect();
+      if (ROS.onclose) ROS.onclose();
+      setTimeout(function() { ROS.connect(); }, 500);
     };
     this.socket.onerror = function() {
-      self.disconnect();
-      if (self.onclose) self.onclose();
-      setTimeout(function() { self.connect(); }, 500);
+      ROS.disconnect();
+      if (ROS.onclose) ROS.onclose();
+      setTimeout(function() { ROS.connect(); }, 500);
     };
     this.socket.onmessage = function(e) {
       var data = JSON.parse(e.data);
-      if (data.receiver in self.services) {
-        var services = self.services[data.receiver];
-        if (services.length) services.shift()(data.msg);
-      } else if (data.receiver in self.subscribers) {
-        self.subscribers[data.receiver].map(function(subscriber) {
+      if (data.msg && data.receiver in ROS.services && data.msg.id in ROS.services[data.receiver]) {
+        var service = ROS.services[data.receiver];
+        var id = data.msg.id;
+        delete data.msg.id;
+        if (service[id]) service[id](data.msg);
+        delete service[id];
+      } else if (data.receiver in ROS.subscribers) {
+        ROS.subscribers[data.receiver].map(function(subscriber) {
           subscriber(data.msg);
         });
-      } else if (self.onmessage) {
-        self.onmessage(data);
+      } else if (ROS.onmessage) {
+        ROS.onmessage(data);
       }
     };
     this.send = function(json) {
       var data = JSON.stringify(json);
-      if (self.socket) self.socket.send(data);
+      if (ROS.socket) {
+        try {
+          ROS.socket.send(data);
+        } catch (e) {
+          // INVALID_STATE_ERR: DOM Exception 11
+        }
+      }
     };
   }
 };

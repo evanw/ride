@@ -5,18 +5,28 @@
 var ride = {
   graph: new GraphBox.Graph(),
 
-  addNode: function(packageName, nodeName) {
-    var node = new GraphBox.Node(nodeName + ' (' + packageName + ')');
-    node.detailText = 'Loading...';
-    node.moveTo(100, 100);
-    this.graph.addNode(node);
+  reset: function() {
+    this.graph.clear();
+  },
+
+  selectAll: function() {
+    this.graph.setSelection(this.graph.nodes);
+  },
+
+  insertNode: function(package, binary) {
+    // Create a roslaunch file on the server and allocate a node name, then
+    // start the node to find out its inputs and outputs
+    ROS.call('/ride/node/create', { package: package, binary: binary }, function(data) {
+      ROS.call('/ride/node/start', { name: data.name });
+    });
   },
 
   deleteSelection: function() {
     this.graph.selection().map(function(node) {
-      this.graph.removeNode(node);
-    }, this);
-    this.graph.updateBounds();
+      if (!node.readOnlyFlag) {
+        ROS.call('/ride/node/destroy', { name: node.name });
+      }
+    });
   },
 
   updateNodeList: function(data) {
@@ -39,14 +49,20 @@ var ride = {
     // Create new connections and remove old connections
     data.map(function(info) {
       var node = ride.graph.node(info.name);
+      node.readOnlyFlag = !info.owned;
+      node.detailText = info.running ? '' : 'Not running';
       info.subscribed.map(function(topic) {
         if (!node.input(topic)) {
-          node.inputs.push(new GraphBox.Connection(topic));
+          var input = new GraphBox.Connection(topic);
+          input.readOnlyFlag = true;
+          node.inputs.push(input);
         }
       });
       info.published.map(function(topic) {
         if (!node.output(topic)) {
-          node.outputs.push(new GraphBox.Connection(topic));
+          var output = new GraphBox.Connection(topic);
+          output.readOnlyFlag = true;
+          node.outputs.push(output);
         }
       });
       node.inputs = node.inputs.filter(function(input) {
@@ -148,16 +164,15 @@ var ui = {
   },
 
   insertNode: function() {
-    // Right now this relies on the format 'nodeName (packageName)' because
+    // Right now this relies on the format 'binaryName (packageName)' because
     // that's what is used in the autocomplete
     var insert_node = $('#insert_node');
     var name = insert_node.val();
     var match = /^([^ ]+) \(([^ ]+)\)$/.exec(name);
     if (match) {
       var packageName = match[2];
-      var nodeName = match[1];
-      ride.addNode(packageName, nodeName);
-      ride.graph.setSelection([ride.graph.nodes[ride.graph.nodes.length - 1]]);
+      var binaryName = match[1];
+      ride.insertNode(packageName, binaryName);
       insert_node.val('');
       insert_node.blur();
     }
@@ -169,6 +184,7 @@ var ui = {
     } else {
       $('#connection_status').text('Trying to connect to ' + ROS.url);
     }
+    ride.reset();
   }
 };
 
@@ -184,17 +200,22 @@ var inputWithFocus = null;
 $('input').focus(function() { inputWithFocus = this; });
 $('input').blur(function() { inputWithFocus = null; });
 
-// Delete the selection when backspace or delete is pressed
 $(document).keydown(function(e) {
+  // Delete the selection when backspace or delete is pressed
   if (!inputWithFocus && (e.which == 8 || e.which == 46)) {
     e.preventDefault();
     ride.deleteSelection();
   }
-});
 
-// Ctrl+I sets focus to the insert node textbox
-$(document).keydown(function(e) {
+  // Ctrl+A selects all nodes
+  if (!inputWithFocus && e.which == 65 && e.ctrlKey) {
+    e.preventDefault();
+    ride.selectAll();
+  }
+
+  // Ctrl+I sets focus to the insert node textbox
   if (e.which == 73 && e.ctrlKey) {
+    e.preventDefault();
     $('#insert_node').focus();
   }
 });
