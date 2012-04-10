@@ -50,7 +50,7 @@ var ride = {
     data.map(function(info) {
       var node = ride.graph.node(info.name);
       node.readOnlyFlag = !info.owned;
-      node.detailText = ['Starting...', '', 'Stopped'][info.status];
+      node.detailText = ['Starting...', '', 'Exited with code ' + info.returnCode][info.status];
       info.subscribed.map(function(topic) {
         if (!node.input(topic)) {
           var input = new GraphBox.Connection(topic);

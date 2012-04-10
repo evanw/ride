@@ -39,6 +39,7 @@ class Node:
         self.name = name
         self.proc = None
         self.path = None
+        self.returnCode = None
 
         # Find the path of the binary (more secure than letting the
         # client do it, especially if the package list is limited)
@@ -55,8 +56,7 @@ class Node:
         if self.proc or not self.path:
             return
 
-        name = self.name[1:] if self.name.startswith('/') else self.name
-        self.proc = subprocess.Popen([self.path, '__name:=' + name])
+        self.proc = subprocess.Popen([self.path, '__name:=' + self.name.replace('/', '')])
         print 'started node', self.name
 
     def stop(self):
@@ -64,6 +64,14 @@ class Node:
             self.proc.send_signal(signal.SIGINT)
             self.proc = None
             print 'stopped node', self.name
+
+    def update(self):
+        if self.proc:
+            self.proc.poll()
+            if self.proc.returncode is not None:
+                self.returnCode = self.proc.returncode
+                self.proc = None
+                print self.name, 'died'
 
 def unique_name(like):
     like = re.sub('[^A-Za-z0-9]', '_', like)
@@ -114,33 +122,33 @@ def node_list(request):
     for topic, names in publishers:
         for name in names:
             if name not in nodes:
-                nodes[name] = ride.msg.Node(name, [], [], [], False, ride.msg.Node.STATUS_RUNNING)
+                nodes[name] = ride.msg.Node(name, [], [], [], False, ride.msg.Node.STATUS_RUNNING, 0)
             nodes[name].published.append(topic)
 
     # Link up subscribed topics
     for topic, names in subscribers:
         for name in names:
             if name not in nodes:
-                nodes[name] = ride.msg.Node(name, [], [], [], False, ride.msg.Node.STATUS_RUNNING)
+                nodes[name] = ride.msg.Node(name, [], [], [], False, ride.msg.Node.STATUS_RUNNING, 0)
             nodes[name].subscribed.append(topic)
 
     # Link up provided services
     for service, names in services:
         for name in names:
             if name not in nodes:
-                nodes[name] = ride.msg.Node(name, [], [], [], False, ride.msg.Node.STATUS_RUNNING)
+                nodes[name] = ride.msg.Node(name, [], [], [], False, ride.msg.Node.STATUS_RUNNING, 0)
             nodes[name].services.append(service)
 
     # Make sure all owned nodes are returned and are marked as owned
     for name in owned_nodes:
+        owned_node = owned_nodes[name]
+        owned_node.update()
         if name not in nodes:
-            nodes[name] = ride.msg.Node(name, [], [], [], False, ride.msg.Node.STATUS_STOPPED)
-            proc = owned_nodes[name].proc
-            if proc:
-                proc.poll()
-                if proc.returncode is None:
-                    nodes[name].status = ride.msg.Node.STATUS_STARTING
+            nodes[name] = ride.msg.Node(name, [], [], [], False, ride.msg.Node.STATUS_STOPPED, 0)
+            if owned_node.proc or owned_node.returnCode is None:
+                nodes[name].status = ride.msg.Node.STATUS_STARTING
         nodes[name].owned = True
+        nodes[name].returnCode = 0 if owned_node.returnCode is None else owned_node.returnCode
 
     # Save current node names for when we need to generate a new unique name
     node_names = nodes.keys()
