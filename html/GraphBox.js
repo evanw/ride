@@ -461,6 +461,9 @@ var GraphBox = (function() {
     this.inputs = [];
     this.outputs = [];
     this.element = elem('div', null, 'node');
+    this.titleElement = elem('div', this.element, 'title');
+    this.detailElement = elem('div', this.element, 'detail');
+    this.tableElement = elem('table', this.element);
     this.updateHTML();
 
     // Forward mouse events to the dragging tool
@@ -496,18 +499,18 @@ var GraphBox = (function() {
     },
 
     updateHTML: function() {
-      // Reset content to title
+      // Update node content
       this.setSelected(this.selected);
-      while (this.element.firstChild) {
-        this.element.removeChild(this.element.firstChild);
-      }
-      elem('div', this.element, 'title').textContent = this.name;
+      this.titleElement.textContent = this.name;
+      this.detailElement.textContent = this.detailText;
 
-      // Add detail text
-      elem('div', this.element, 'detail').textContent = this.detailText;
+      // Clear the table
+      while (this.tableElement.firstChild) {
+        this.tableElement.removeChild(this.tableElement.firstChild);
+      }
 
       // Add inputs
-      var cell = elem('td', elem('tr', elem('table', this.element)));
+      var cell = elem('td', elem('tr', this.tableElement));
       for (var i = 0; i < this.inputs.length; i++) {
         var input = this.inputs[i];
         input.node = this;

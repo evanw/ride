@@ -30,6 +30,16 @@ var ride = {
   },
 
   updateNodeList: function(data) {
+    var dropdownHTML = '\
+      <div class="dropdown">\
+        <a data-toggle="dropdown"><div class="caret"></div></a>\
+        <ul class="dropdown-menu">\
+          <li><a>See terminal output</a></li>\
+          <li><a>Run rosmake on package</a></li>\
+          <li><a>Change command line arguments</a></li>\
+        </ul>\
+      </div>';
+
     // Create new nodes and remove old nodes
     var existingNodes = {};
     this.graph.nodes.map(function(node) {
@@ -37,7 +47,11 @@ var ride = {
     });
     data.map(function(info) {
       if (!(info.name in existingNodes)) {
-        ride.graph.addNode(new GraphBox.Node(info.name));
+        var node = new GraphBox.Node(info.name)
+        ride.graph.addNode(node);
+        if (info.owned) {
+          $(dropdownHTML).prependTo(node.element);
+        }
       } else {
         delete existingNodes[info.name];
       }
@@ -213,13 +227,13 @@ $(document).keydown(function(e) {
   }
 
   // Ctrl+A selects all nodes
-  if (!inputWithFocus && e.which == 65 && e.ctrlKey) {
+  if (!inputWithFocus && e.which == 65 && (e.ctrlKey || e.metaKey)) {
     e.preventDefault();
     ride.selectAll();
   }
 
   // Ctrl+I sets focus to the insert node textbox
-  if (e.which == 73 && e.ctrlKey) {
+  if (e.which == 73 && (e.ctrlKey || e.metaKey)) {
     e.preventDefault();
     $('#insert_node').focus();
   }
