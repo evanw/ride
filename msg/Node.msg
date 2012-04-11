@@ -4,7 +4,8 @@ string[] subscribed
 string[] services
 bool owned
 int32 status
-int32 returnCode
+int32 return_code
 int32 STATUS_STARTING = 0
 int32 STATUS_RUNNING = 1
-int32 STATUS_STOPPED = 2
+int32 STATUS_STOPPING = 2
+int32 STATUS_STOPPED = 3

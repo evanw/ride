@@ -4,6 +4,7 @@ import roslib; roslib.load_manifest('ride')
 import re
 import os
 import sys
+import fcntl
 import rospy
 import pickle
 import signal
@@ -39,7 +40,8 @@ class Node:
         self.name = name
         self.proc = None
         self.path = None
-        self.returnCode = None
+        self.return_code = None
+        self.is_starting = True
         self.output = ''
 
         # Find the path of the binary (more secure than letting the
@@ -54,25 +56,27 @@ class Node:
         self.stop()
 
     def start(self):
-        if self.proc or not self.path:
+        if not self.path:
             return
 
-        # Start the node
+        # Kill the node if it exists
+        if self.proc:
+            self.proc.kill()
+            self.proc = None
+
+        # Start the node again
         command = [self.path, '__name:=' + self.name.replace('/', '')]
         self.proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        print 'started node', self.name
+        self.is_starting = True
+        self.output = ''
 
         # Make sure self.proc.stdout.read() won't block
-        import fcntl
         f = self.proc.stdout
         fcntl.fcntl(f, fcntl.F_SETFL, fcntl.fcntl(f, fcntl.F_GETFL) | os.O_NONBLOCK)
-        self.output = ''
 
     def stop(self):
         if self.proc:
             self.proc.send_signal(signal.SIGINT)
-            self.proc = None
-            print 'stopped node', self.name
 
     def update(self):
         if self.proc:
@@ -82,9 +86,8 @@ class Node:
             except:
                 pass
             if self.proc.returncode is not None:
-                self.returnCode = self.proc.returncode
+                self.return_code = self.proc.returncode
                 self.proc = None
-                print self.name, 'died'
 
 def unique_name(like):
     like = re.sub('[^A-Za-z0-9]', '_', like)
@@ -165,10 +168,12 @@ def node_list(request):
         owned_node.update()
         if name not in nodes:
             nodes[name] = ride.msg.Node(name, [], [], [], False, ride.msg.Node.STATUS_STOPPED, 0)
-            if owned_node.proc or owned_node.returnCode is None:
-                nodes[name].status = ride.msg.Node.STATUS_STARTING
+            if owned_node.proc or owned_node.return_code is None:
+                nodes[name].status = ride.msg.Node.STATUS_STARTING if owned_node.is_starting else ride.msg.Node.STATUS_STOPPING
+        else:
+            owned_node.is_starting = False
         nodes[name].owned = True
-        nodes[name].returnCode = 0 if owned_node.returnCode is None else owned_node.returnCode
+        nodes[name].return_code = 0 if owned_node.return_code is None else owned_node.return_code
 
     # Save current node names for when we need to generate a new unique name
     node_names = nodes.keys()

@@ -50,9 +50,13 @@ var ride = {
 
     // Create new connections and remove old connections
     data.map(function(info) {
+      var statuses = ['Starting...', '', 'Stopping...', 'Exited with code ' + info.return_code]
+      var STATUS_STOPPED = 3;
       var node = ride.graph.node(info.name);
       node.readOnlyFlag = !info.owned;
-      node.detailText = ['Starting...', '', 'Exited with code ' + info.returnCode][info.status];
+      node.detailText = statuses[info.status];
+      $(node.startElement).toggle(info.status == STATUS_STOPPED);
+      $(node.stopElement).toggle(info.status != STATUS_STOPPED);
       info.subscribed.map(function(topic) {
         if (!node.input(topic)) {
           var input = new GraphBox.Connection(topic);
@@ -144,9 +148,20 @@ var dropdownHTML = '\
 
 var ui = {
   ownedNodeInserted: function(node) {
-    function item(name, callback) { $('<li><a>' + name + '</a></li>').appendTo(menu).click(callback); }
-    $(dropdownHTML).prependTo(node.element);
+    function item(name, callback) {
+      return $('<li><a>' + name + '</a></li>')
+        .appendTo(menu).click(callback)[0];
+    }
+    $(dropdownHTML).insertAfter(node.titleElement);
     var menu = $(node.element).find('.dropdown-menu')[0];
+
+    node.startElement = item('Start node', function() {
+      ROS.call('/ride/node/start', { name: node.name });
+    });
+
+    node.stopElement = item('Stop node', function() {
+      ROS.call('/ride/node/stop', { name: node.name });
+    });
 
     item('Show terminal output', function() {
       ROS.call('/ride/node/output', { name: node.name }, function(data) {
