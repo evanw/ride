@@ -24,6 +24,20 @@ def split_words(text):
     '''return a list of lines where each line is a list of words'''
     return [line.strip().split() for line in text.split('\n')]
 
+def cache_load(path, default):
+    '''make pickle.load() easier to use'''
+    try:
+        return pickle.load(open(path))
+    except:
+        return default
+
+def cache_save(path, obj):
+    '''make pickle.dump() easier to use'''
+    try:
+        pickle.dump(obj, open(path, 'w'))
+    except:
+        pass
+
 # Map of node names to Node instances
 owned_nodes = {}
 
@@ -32,6 +46,18 @@ node_names = []
 
 # List of ride.msg.Package instances
 packages = []
+
+# Map of binary_path to (set(published_topics), set(subscribed_topics))
+topics = {}
+
+# Other globals
+topics_path = ''
+temporary_topic_count = 0
+
+# This seems to need to be global? If the generated names are in the /ride
+# namespace then ImageTransport puts /camera_info in /ride/camera_info and
+# the remapping fails. Leaving these in the global namespace for now.
+temporary_topic_prefix = '/ride_temporary_topic'
 
 class Node:
     def __init__(self, package, binary, name):
@@ -64,11 +90,58 @@ class Node:
             self.proc.kill()
             self.proc = None
 
-        # Start the node again
+        #                       _   _    _    ____ _  __
+        #                      | | | |  / \  / ___| |/ /
+        #                      | |_| | / _ \| |   | ' /
+        #                      |  _  |/ ___ \ |___| . \
+        #                      |_| |_/_/   \_\____|_|\_\
+        #
+        # The goal of this IDE is to dynamically reconnect ROS nodes while the
+        # graph is running. This requires remapping topic names on the fly.
+        # While ROS supports remappings, they can only be done before publisher
+        # objects are created (i.e. only at initialization time) and cannot be
+        # updated at runtime. To do runtime editing of the graph, we need to
+        # remap all possible topic names at the start and then dynamically add
+        # and remove special forwarder nodes that implement the connections.
+        #
+        # The problem is that we don't know all possible topic names. Instead
+        # we do the next best thing, which is to remember all topic names we
+        # have ever seen during a node's lifetime. Then, the next time that
+        # node is run, we will be able to remap those topics and do dynamic
+        # connections.
+        #
+        # While in theory we can just remap all observed topics, this doesn't
+        # always work because some nodes derive topic names using the name of
+        # another topic as a prefix. For example, the ar_recog node publishes
+        # to topics including /ar/image and /ar/image/theora. We can try to
+        # remap these using /ar/image/theora:=/t1 and /ar/image:=t2 but since
+        # the /theora is appended to /ar/image after it has been remapped,
+        # the generated topic name will be /t2/theora and our remapping to t1
+        # will fail. To account for this, we automatically add both remappings
+        # in this case (/ar/image/theora:=/t1 and /t2/theora:=/t1).
+
+        # Start off with the topic names
+        map = {}
+        published, subscribed = topics.get(self.path, (set(), set()))
+        for topic in published | subscribed:
+            map[topic] = temporary_topic_name()
+
+        # Find prefixes and add those remappings too
+        keys = map.keys()
+        for prefix in keys:
+            for topic in keys:
+                if topic.startswith(prefix) and topic != prefix:
+                    map[map[prefix] + topic[len(prefix):]] = map[topic]
+
+        # Build up the command
         command = [self.path, '__name:=' + self.name.replace('/', '')]
+        for topic in map:
+            command.append(topic + ':=' + map[topic])
+
+        # Start the node again
         self.proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         self.is_starting = True
-        self.output = ''
+        self.output = '$ ' + self.path + '\n'
 
         # Make sure self.proc.stdout.read() won't block
         f = self.proc.stdout
@@ -89,8 +162,14 @@ class Node:
                 self.return_code = self.proc.returncode
                 self.proc = None
 
+def temporary_topic_name():
+    global temporary_topic_count
+    topic = temporary_topic_prefix + str(temporary_topic_count)
+    temporary_topic_count += 1
+    return topic
+
 def unique_name(like):
-    like = re.sub('[^A-Za-z0-9]', '_', like)
+    like = '/' + re.sub('[^A-Za-z0-9]', '_', like)
     names = set(node_names)
     if like not in names:
         return like
@@ -99,10 +178,11 @@ def unique_name(like):
         name = like + str(i)
         if name not in names:
             return name
+        i += 1
 
 def node_create(request):
     '''implements the /ride/node/create service'''
-    name = '/' + unique_name(request.binary)
+    name = unique_name(request.binary)
     owned_nodes[name] = Node(request.package, request.binary, name)
     return ride.srv.NodeCreateResponse(request.id, name)
 
@@ -138,47 +218,71 @@ def node_list(request):
     '''implements the /ride/node/list service'''
 
     # Query the master for the entire state of the system
-    nodes = {}
+    node_map = {}
+    owned_node_map = {}
     publishers, subscribers, services = rosgraph.masterapi.Master('/ride').getSystemState()
 
     # Link up published topics
     for topic, names in publishers:
         for name in names:
-            if name not in nodes:
-                nodes[name] = ride.msg.Node(name, [], [], [], False, ride.msg.Node.STATUS_RUNNING, 0)
-            nodes[name].published.append(topic)
+            if name not in node_map:
+                node_map[name] = ride.msg.Node(name, [], [], [])
+            node_map[name].published.append(topic)
 
     # Link up subscribed topics
     for topic, names in subscribers:
         for name in names:
-            if name not in nodes:
-                nodes[name] = ride.msg.Node(name, [], [], [], False, ride.msg.Node.STATUS_RUNNING, 0)
-            nodes[name].subscribed.append(topic)
+            if name not in node_map:
+                node_map[name] = ride.msg.Node(name, [], [], [])
+            node_map[name].subscribed.append(topic)
 
     # Link up provided services
     for service, names in services:
         for name in names:
-            if name not in nodes:
-                nodes[name] = ride.msg.Node(name, [], [], [], False, ride.msg.Node.STATUS_RUNNING, 0)
-            nodes[name].services.append(service)
+            if name not in node_map:
+                node_map[name] = ride.msg.Node(name, [], [], [])
+            node_map[name].services.append(service)
 
     # Make sure all owned nodes are returned and are marked as owned
     for name in owned_nodes:
-        owned_node = owned_nodes[name]
-        owned_node.update()
-        if name not in nodes:
-            nodes[name] = ride.msg.Node(name, [], [], [], False, ride.msg.Node.STATUS_STOPPED, 0)
-            if owned_node.proc or owned_node.return_code is None:
-                nodes[name].status = ride.msg.Node.STATUS_STARTING if owned_node.is_starting else ride.msg.Node.STATUS_STOPPING
+        # Check on the process
+        o = owned_nodes[name]
+        o.update()
+
+        # Make sure we return an OwnedNode, even for running nodes
+        n = ride.msg.OwnedNode(name, [], [], [], 0, 0)
+        owned_node_map[name] = n
+        n.return_code = 0 if o.return_code is None else o.return_code
+        if name in node_map:
+            # Move the state over from the other node
+            n.published = node_map[name].published
+            n.subscribed = node_map[name].subscribed
+            n.services = node_map[name].services
+            n.status = ride.msg.OwnedNode.STATUS_RUNNING
+            o.is_starting = False
+            del node_map[name]
+
+            # Remember all observed topics for when we restart this node in the future
+            if o.path not in topics:
+                topics[o.path] = set(), set()
+            p, s = topics[o.path]
+            p |= set(t for t in n.published if not t.startswith(temporary_topic_prefix))
+            s |= set(t for t in n.subscribed if not t.startswith(temporary_topic_prefix))
+        elif not o.proc and o.return_code is not None:
+            n.status = ride.msg.OwnedNode.STATUS_STOPPED
+        elif o.is_starting:
+            n.status = ride.msg.OwnedNode.STATUS_STARTING
         else:
-            owned_node.is_starting = False
-        nodes[name].owned = True
-        nodes[name].return_code = 0 if owned_node.return_code is None else owned_node.return_code
+            n.status = ride.msg.OwnedNode.STATUS_STOPPING
 
     # Save current node names for when we need to generate a new unique name
-    node_names = nodes.keys()
+    global node_names
+    node_names = node_map.keys() + owned_node_map.keys()
 
-    return ride.srv.NodeListResponse(request.id, nodes.values())
+    # Save map of observed topics
+    cache_save(topics_path, topics)
+
+    return ride.srv.NodeListResponse(request.id, node_map.values(), owned_node_map.values())
 
 def package_list(request):
     '''implements the /ride/package/list service'''
@@ -228,21 +332,16 @@ def package_list(request):
     return ride.srv.PackageListResponse(request.id, packages)
 
 def main():
-    # Cache the package list because it's expensive to compute
-    global packages
-    cache_path = os.path.join(os.path.dirname(__file__), '.package_cache')
+    # Load cached information (packages and topics)
+    global packages, topics_path, topics
+    packages_path = os.path.join(os.path.dirname(__file__), '.package_cache')
+    topics_path = os.path.join(os.path.dirname(__file__), '.topic_cache')
     print 'loading all packages...'
-    if '--cached' in sys.argv:
-        try:
-            packages = pickle.load(open(cache_path))
-        except:
-            pass
+    packages = cache_load(packages_path, [])
+    topics = cache_load(topics_path, {})
     if not packages:
         packages = package_list(ride.srv.PackageListRequest('')).packages
-        try:
-            pickle.dump(packages, open(cache_path, 'w'))
-        except:
-            pass
+        cache_save(packages_path, packages)
     print 'finished loading'
     cached_package_list = lambda request: ride.srv.PackageListResponse(request.id, packages)
 

@@ -1,4 +1,4 @@
 <launch>
   <node name="rosbridge" pkg="rosbridge" type="rosbridge.py" required="true" />
-  <node name="ride" pkg="ride" type="ride.py" output="screen" required="true" args="--cached" />
+  <node name="ride" pkg="ride" type="ride.py" output="screen" required="true" />
 </launch>

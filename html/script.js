@@ -39,7 +39,7 @@ var ride = {
       if (!(info.name in existingNodes)) {
         var node = new GraphBox.Node(info.name)
         ride.graph.addNode(node);
-        if (info.owned) ui.ownedNodeInserted(node);
+        if ('status' in info) ui.ownedNodeInserted(node);
       } else {
         delete existingNodes[info.name];
       }
@@ -50,13 +50,18 @@ var ride = {
 
     // Create new connections and remove old connections
     data.map(function(info) {
-      var statuses = ['Starting...', '', 'Stopping...', 'Exited with code ' + info.return_code]
-      var STATUS_STOPPED = 3;
       var node = ride.graph.node(info.name);
-      node.readOnlyFlag = !info.owned;
-      node.detailText = statuses[info.status];
-      $(node.startElement).toggle(info.status == STATUS_STOPPED);
-      $(node.stopElement).toggle(info.status != STATUS_STOPPED);
+      if ('status' in info) {
+        var statuses = ['Starting...', '', 'Stopping...', 'Exited with code ' + info.return_code];
+        var STATUS_STOPPED = 3;
+        node.detailText = statuses[info.status];
+        $(node.startElement).toggle(info.status == STATUS_STOPPED);
+        $(node.stopElement).toggle(info.status != STATUS_STOPPED);
+        node.readOnlyFlag = false;
+      } else {
+        node.detailText = '';
+        node.readOnlyFlag = true;
+      }
       info.subscribed.map(function(topic) {
         if (!node.input(topic)) {
           var input = new GraphBox.Connection(topic);
@@ -129,7 +134,7 @@ ROS.onclose = function() {
 
 setInterval(function() {
   ROS.call('/ride/node/list', {}, function(data) {
-    ride.updateNodeList(data.nodes);
+    ride.updateNodeList(data.nodes.concat(data.owned_nodes));
   });
 }, 500);
 
@@ -165,7 +170,7 @@ var ui = {
 
     item('Show terminal output', function() {
       ROS.call('/ride/node/output', { name: node.name }, function(data) {
-        $('#terminal_output_data').text(data.data);
+        $('#terminal_output_data').html(escape_codes_to_html(data.data));
         $('#terminal_output').modal('show');
       });
     });
@@ -276,3 +281,20 @@ function resizeGraph() {
 }
 $(window).resize(resizeGraph);
 resizeGraph();
+
+////////////////////////////////////////////////////////////////////////////////
+// Helper functions
+////////////////////////////////////////////////////////////////////////////////
+
+// Convert ASCII escape codes into colored HTML because why not
+function escape_codes_to_html(text) {
+  var colors = ['black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white'];
+  var html = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return '<span>' + html.replace(new RegExp('\x1b\\[\\d+(;\\d+)*[A-Za-z]', 'g'), function(match) {
+    return match.substring(2, match.length - 1).split(';').map(function(code) {
+      if (/^3\d$/.test(code)) return '</span><span style="color:' + colors[code[1]] + ';">';
+      if (/^4\d$/.test(code)) return '</span><span style="background:' + colors[code[1]] + ';">';
+      return '';
+    }).join('');
+  }) + '</span>';
+}
