@@ -331,6 +331,14 @@ def package_list(request):
 
     return ride.srv.PackageListResponse(request.id, packages)
 
+def link_create(request):
+    '''implements the /ride/link/create service'''
+    return ride.srv.LinkCreateResponse(request.id, False)
+
+def link_destroy(request):
+    '''implements the /ride/link/destroy service'''
+    return ride.srv.LinkDestroyResponse(request.id, False)
+
 def main():
     # Load cached information (packages and topics)
     global packages, topics_path, topics
@@ -360,6 +368,8 @@ def main():
     rospy.Service('/ride/node/list', ride.srv.NodeList, node_list)
     rospy.Service('/ride/node/output', ride.srv.NodeOutput, node_output)
     rospy.Service('/ride/package/list', ride.srv.PackageList, cached_package_list)
+    rospy.Service('/ride/link/create', ride.srv.LinkCreate, link_create)
+    rospy.Service('/ride/link/destroy', ride.srv.LinkDestroy, link_destroy)
     rospy.spin()
 
 if __name__ == '__main__':

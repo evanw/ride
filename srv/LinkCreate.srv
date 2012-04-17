@@ -1,0 +1,6 @@
+int32 id
+string from
+string to
+----
+int32 id
+bool valid

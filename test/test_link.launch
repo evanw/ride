@@ -1,0 +1,12 @@
+<launch>
+  <node name="a" pkg="ride" type="test_link.py" output="screen">
+    <remap from="in" to="a_in" />
+    <remap from="out" to="a_out" />
+  </node>
+  <node name="b" pkg="ride" type="test_link.py" output="screen">
+    <remap from="in" to="b_in" />
+    <remap from="out" to="b_out" />
+  </node>
+  <node name="a_to_b" pkg="ride" type="link.py" output="screen" args="--type=std_msgs/String --from=a_out --to=b_in" />
+  <node name="b_to_a" pkg="ride" type="link.py" output="screen" args="--type=std_msgs/String --from=b_out --to=a_in" />
+</launch>
