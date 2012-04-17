@@ -72,7 +72,7 @@ class Link:
         path = os.path.join(os.path.dirname(__file__), 'link.py')
         command = [path, '__name:=' + temporary_node_prefix + str(temporary_node_count)]
         command += ['--from=' + from_topic, '--to=' + to_topic, '--type=' + msg_type]
-        self.proc = subprocess.Popen(command) # , stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        self.proc = subprocess.Popen(command)
         temporary_node_count += 1
 
     def __del__(self):
@@ -88,6 +88,7 @@ class Node:
         self.return_code = None
         self.is_starting = True
         self.output = ''
+        self.topic_map = {}
 
         # Find the path of the binary (more secure than letting the
         # client do it, especially if the package list is limited)
@@ -144,6 +145,7 @@ class Node:
         published, subscribed = topics.get(self.path, (set(), set()))
         for topic in published | subscribed:
             map[topic] = temporary_topic_name()
+        self.topic_map = dict(zip(map.values(), map.keys()))
 
         # Find prefixes and add those remappings too
         keys = map.keys()
@@ -269,7 +271,7 @@ def node_list(request):
         o.update()
 
         # Make sure we return an OwnedNode, even for running nodes
-        n = ride.msg.OwnedNode(name, [], [], [], 0, 0)
+        n = ride.msg.OwnedNode(name, [], [], [], [], [], 0, 0)
         owned_node_map[name] = n
         n.return_code = 0 if o.return_code is None else o.return_code
         if name in node_map:
@@ -287,6 +289,10 @@ def node_list(request):
             p, s = topics[o.path]
             p |= set(t for t in n.published if not t.startswith(temporary_topic_prefix))
             s |= set(t for t in n.subscribed if not t.startswith(temporary_topic_prefix))
+
+            # Also provide the original topic names (for display purposes only)
+            n.published_original = [o.topic_map.get(t, t) for t in n.published]
+            n.subscribed_original = [o.topic_map.get(t, t) for t in n.subscribed]
         elif not o.proc and o.return_code is not None:
             n.status = ride.msg.OwnedNode.STATUS_STOPPED
         elif o.is_starting:

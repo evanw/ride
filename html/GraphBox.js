@@ -268,6 +268,9 @@ var GraphBox = (function() {
       if (this.linking && this.input && this.output &&
           (!this.input.isReadOnly() || !this.output.isReadOnly())) {
         this.input.connect(this.output);
+        if (this.graph.onconnection) {
+          this.graph.onconnection(this.input, this.output);
+        }
       }
       this.linking = false;
       this.graph.draw();
@@ -295,6 +298,7 @@ var GraphBox = (function() {
     this.selectionTool = new SelectionTool(this);
     this.draggingTool = new DraggingTool(this);
     this.nodeLinkTool = new NodeLinkTool(this);
+    this.onconnection = null;
 
     // Forward mouse events to tools
     on(this.canvas, 'mousedown', bind(this.selectionTool, this.selectionTool.onmousedown));
@@ -427,6 +431,7 @@ var GraphBox = (function() {
     this.node = null;
     this.targets = [];
     this.element = null;
+    this.alternativeName = null;
   }
 
   Connection.prototype = {
@@ -516,7 +521,7 @@ var GraphBox = (function() {
         input.node = this;
         input.element = elem('div', cell, 'input' + (input.isReadOnly() ? ' readonly' : ''));
         elem('div', elem('div', input.element, 'bullet'));
-        text(input.name, input.element);
+        text(input.alternativeName || input.name, input.element);
         (function(input) {
           on(input.element, 'mousedown', function(e) {
             input.node.graph.nodeLinkTool.onmousedown(e, input, false);
@@ -536,7 +541,7 @@ var GraphBox = (function() {
         var output = this.outputs[i];
         output.node = this;
         output.element = elem('div', cell, 'output' + (output.isReadOnly() ? ' readonly' : ''));
-        text(output.name, output.element);
+        text(output.alternativeName || output.name, output.element);
         elem('div', elem('div', output.element, 'bullet'));
         (function(output) {
           on(output.element, 'mousedown', function(e) {

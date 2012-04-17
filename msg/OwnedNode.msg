@@ -1,6 +1,8 @@
 string name
 string[] published
 string[] subscribed
+string[] published_original
+string[] subscribed_original
 string[] services
 int32 status
 int32 return_code

@@ -51,7 +51,10 @@ var ride = {
     // Create new connections and remove old connections
     data.map(function(info) {
       var node = ride.graph.node(info.name);
-      if ('status' in info) {
+      var isOwned = 'status' in info;
+
+      // Set node details
+      if (isOwned) {
         var statuses = ['Starting...', '', 'Stopping...', 'Exited with code ' + info.return_code];
         var STATUS_STOPPED = 3;
         node.detailText = statuses[info.status];
@@ -62,20 +65,36 @@ var ride = {
         node.detailText = '';
         node.readOnlyFlag = true;
       }
-      info.subscribed.map(function(topic) {
+
+      // Create new inputs (subscribed topics)
+      info.subscribed.map(function(topic, i) {
         if (!node.input(topic)) {
           var input = new GraphBox.Connection(topic);
-          input.readOnlyFlag = true;
+          if (isOwned) {
+            input.alternativeName = info.subscribed_original[i];
+            input.readOnlyFlag = (input.name == input.alternativeName);
+          } else {
+            input.readOnlyFlag = true;
+          }
           node.inputs.push(input);
         }
       });
-      info.published.map(function(topic) {
+
+      // Create new outputs (published topics)
+      info.published.map(function(topic, i) {
         if (!node.output(topic)) {
           var output = new GraphBox.Connection(topic);
-          output.readOnlyFlag = true;
+          if (isOwned) {
+            output.alternativeName = info.published_original[i];
+            output.readOnlyFlag = (output.name == output.alternativeName);
+          } else {
+            output.readOnlyFlag = true;
+          }
           node.outputs.push(output);
         }
       });
+
+      // Remove old connections that no longer exist
       node.inputs = node.inputs.filter(function(input) {
         return info.subscribed.indexOf(input.name) != -1;
       });
@@ -115,6 +134,16 @@ var ride = {
     });
     this.graph.updateBounds();
   }
+};
+
+// Propagate new connections to the server
+ride.graph.onconnection = function(input, output) {
+  console.log('linking', output.name, 'to', input.name);
+  ROS.call('/ride/link/create', {
+    from_topic: output.name,
+    to_topic: input.name,
+    msg_type: 'std_msgs/String'
+  });
 };
 
 ////////////////////////////////////////////////////////////////////////////////
