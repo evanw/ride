@@ -14,15 +14,15 @@ def load_msg_type(type):
 def main():
     # Parse command line arguments
     args = dict(getopt.gnu_getopt(sys.argv, '', ['type=', 'from=', 'to='])[0])
-    type = args['--type']
+    msg_type = args['--type']
     from_topic = args['--from']
     to_topic = args['--to']
 
     # Create the link node
     rospy.init_node('link')
-    type = load_msg_type(type)
-    pub = rospy.Publisher(to_topic, type)
-    sub = rospy.Subscriber(from_topic, type, lambda x: pub.publish(x))
+    msg_type = load_msg_type(msg_type)
+    pub = rospy.Publisher(to_topic, msg_type)
+    sub = rospy.Subscriber(from_topic, msg_type, lambda x: pub.publish(x))
     rospy.spin()
 
 if __name__ == '__main__':

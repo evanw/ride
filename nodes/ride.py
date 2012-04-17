@@ -38,6 +38,9 @@ def cache_save(path, obj):
     except:
         pass
 
+# Map of (from_topic, to_topic, msg_type) to Link instances
+links = {}
+
 # Map of node names to Node instances
 owned_nodes = {}
 
@@ -53,11 +56,27 @@ topics = {}
 # Other globals
 topics_path = ''
 temporary_topic_count = 0
+temporary_node_count = 0
 
 # This seems to need to be global? If the generated names are in the /ride
 # namespace then ImageTransport puts /camera_info in /ride/camera_info and
 # the remapping fails. Leaving these in the global namespace for now.
 temporary_topic_prefix = '/ride_temporary_topic'
+
+# This is used for link nodes
+temporary_node_prefix = '/ride_temporary_node'
+
+class Link:
+    def __init__(self, from_topic, to_topic, msg_type):
+        global temporary_node_count
+        path = os.path.join(os.path.dirname(__file__), 'link.py')
+        command = [path, '__name:=' + temporary_node_prefix + str(temporary_node_count)]
+        command += ['--from=' + from_topic, '--to=' + to_topic, '--type=' + msg_type]
+        self.proc = subprocess.Popen(command) # , stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        temporary_node_count += 1
+
+    def __del__(self):
+        self.proc.send_signal(signal.SIGINT)
 
 class Node:
     def __init__(self, package, binary, name):
@@ -333,10 +352,24 @@ def package_list(request):
 
 def link_create(request):
     '''implements the /ride/link/create service'''
+    from_topic = request.from_topic
+    to_topic = request.to_topic
+    msg_type = request.msg_type
+    key = from_topic, to_topic, msg_type
+    if key not in links:
+        links[key] = Link(from_topic, to_topic, msg_type)
+        return ride.srv.LinkCreateResponse(request.id, True)
     return ride.srv.LinkCreateResponse(request.id, False)
 
 def link_destroy(request):
     '''implements the /ride/link/destroy service'''
+    from_topic = request.from_topic
+    to_topic = request.to_topic
+    msg_type = request.msg_type
+    key = from_topic, to_topic, msg_type
+    if key in links:
+        del links[key]
+        return ride.srv.LinkDestroyResponse(request.id, True)
     return ride.srv.LinkDestroyResponse(request.id, False)
 
 def main():

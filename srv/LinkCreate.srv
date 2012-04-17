@@ -1,6 +1,7 @@
 int32 id
-string from
-string to
+string from_topic
+string to_topic
+string msg_type
 ----
 int32 id
 bool valid
