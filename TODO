@@ -1,15 +1,11 @@
 - may need to have a way to rosmake a package
 - need real-time editing of connections
 - need to hide temporary forwarding nodes
-- switch from polling with js to polling the master within a python loop
-  - only broadcast events when the state changes or when a new client appears
-  - would increase network performance and decrease latency
-  - might be able to poll faster than 0.5 seconds
-  - could send delta state instead of entire state
 - show types of topics?
   - do topics even have a single type?
   - if so, maybe only show types along edges?
 - how to kill image_view when you close the window? what's going on?
+- minimap for large programs
 
 DONE
 - get rid of temporary roslaunch files and run binaries directly?
@@ -21,3 +17,9 @@ DONE
 - need start/stop button
 - make node list return two different node types for sanity (owned/unowned)
 - add hacky forwarding nodes
+- switch from polling with js to polling the master within a python loop
+  - only broadcast events when the state changes or when a new client appears
+  - would increase network performance and decrease latency
+  - might be able to poll faster than 0.5 seconds
+  - could send delta state instead of entire state
+  - /rosbridge/subscribe drops lots of messages if you don't pass it -1

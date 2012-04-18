@@ -1,6 +1,0 @@
-int32 id
-string name
-----
-int32 id
-string data
-bool valid

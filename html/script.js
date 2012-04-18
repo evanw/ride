@@ -2,6 +2,11 @@
 // RIDE
 ////////////////////////////////////////////////////////////////////////////////
 
+var STATUS_STARTING = 0;
+var STATUS_STARTED = 1;
+var STATUS_STOPPING = 2;
+var STATUS_STOPPED = 3;
+
 var ride = {
   graph: new GraphBox.Graph(),
 
@@ -9,141 +14,88 @@ var ride = {
     this.graph.clear();
   },
 
+  deleteSelection: function() {
+    // This will only work on owned nodes but will just do nothing for other nodes
+    this.graph.selection().map(function(node) {
+      ROS.call('/ride/node/destroy', { name: node.name });
+    });
+  },
+
   selectAll: function() {
     this.graph.setSelection(this.graph.nodes);
   },
 
   insertNode: function(package, binary) {
-    // Create a roslaunch file on the server and allocate a node name, then
-    // start the node to find out its inputs and outputs
     ROS.call('/ride/node/create', { package: package, binary: binary }, function(data) {
       ROS.call('/ride/node/start', { name: data.name });
     });
   },
 
-  deleteSelection: function() {
-    this.graph.selection().map(function(node) {
-      if (!node.readOnlyFlag) {
-        ROS.call('/ride/node/destroy', { name: node.name });
-      }
-    });
-  },
+  update: function(data) {
+    switch (data.type) {
+      case 'create_node':
+        var node = new GraphBox.Node(data.name);
+        this.graph.addNode(node);
+        this.graph.updateBounds();
+        this.graph.draw();
+        break;
 
-  updateNodeList: function(data) {
-    // Create new nodes and remove old nodes
-    var existingNodes = {};
-    this.graph.nodes.map(function(node) {
-      existingNodes[node.name] = node;
-    });
-    data.map(function(info) {
-      if (!(info.name in existingNodes)) {
-        var node = new GraphBox.Node(info.name)
-        ride.graph.addNode(node);
-        if ('status' in info) ui.ownedNodeInserted(node);
-      } else {
-        delete existingNodes[info.name];
-      }
-    });
-    Object.keys(existingNodes).map(function(name) {
-      ride.graph.removeNode(existingNodes[name]);
-    });
-
-    // Create new connections and remove old connections
-    data.map(function(info) {
-      var node = ride.graph.node(info.name);
-      var isOwned = 'status' in info;
-
-      // Set node details
-      if (isOwned) {
-        var statuses = ['Starting...', '', 'Stopping...', 'Exited with code ' + info.return_code];
-        var STATUS_STOPPED = 3;
-        node.detailText = statuses[info.status];
-        $(node.startElement).toggle(info.status == STATUS_STOPPED);
-        $(node.stopElement).toggle(info.status != STATUS_STOPPED);
-        node.readOnlyFlag = false;
-      } else {
-        node.detailText = '';
-        node.readOnlyFlag = true;
-      }
-
-      // Create new inputs (subscribed topics)
-      info.subscribed.map(function(topic, i) {
-        if (!node.input(topic)) {
-          var input = new GraphBox.Connection(topic);
-          if (isOwned) {
-            input.alternativeName = info.subscribed_original[i];
-            input.readOnlyFlag = (input.name == input.alternativeName);
-          } else {
-            input.readOnlyFlag = true;
-          }
-          node.inputs.push(input);
+      case 'destroy_node':
+        var node = this.graph.node(data.name);
+        if (node) {
+          this.graph.removeNode(node);
+          this.graph.updateBounds();
+          this.graph.draw();
         }
-      });
+        break;
 
-      // Create new outputs (published topics)
-      info.published.map(function(topic, i) {
-        if (!node.output(topic)) {
-          var output = new GraphBox.Connection(topic);
-          if (isOwned) {
-            output.alternativeName = info.published_original[i];
-            output.readOnlyFlag = (output.name == output.alternativeName);
-          } else {
-            output.readOnlyFlag = true;
-          }
-          node.outputs.push(output);
+      case 'create_owned_node':
+        var node = new GraphBox.Node(data.name);
+        this.graph.addNode(node);
+        this.graph.updateBounds();
+        this.graph.draw();
+        break;
+
+      case 'destroy_owned_node':
+        var node = this.graph.node(data.name);
+        if (node) {
+          this.graph.removeNode(node);
+          this.graph.updateBounds();
+          this.graph.draw();
         }
-      });
+        break;
 
-      // Remove old connections that no longer exist
-      node.inputs = node.inputs.filter(function(input) {
-        return info.subscribed.indexOf(input.name) != -1;
-      });
-      node.outputs = node.outputs.filter(function(output) {
-        return info.published.indexOf(output.name) != -1;
-      });
-    });
-
-    // Update connection targets
-    var subscribers = {};
-    var publishers = {};
-    data.map(function(info) {
-      var node = ride.graph.node(info.name);
-      info.subscribed.map(function(topic) {
-        (subscribers[topic] || (subscribers[topic] = [])).push(node);
-      });
-      info.published.map(function(topic) {
-        (publishers[topic] || (publishers[topic] = [])).push(node);
-      });
-    });
-    this.graph.nodes.map(function(node) {
-      node.inputs.map(function(input) {
-        input.targets = (publishers[input.name] || []).map(function(node) {
-          return node.output(input.name);
+      case 'create_slot':
+        var node = this.graph.node(data.node_name);
+        if (!node) break;
+        if (data.is_input) {
+          var slot = node.input(data.topic);
+          var slots = node.inputs;
+        } else {
+          var slot = node.output(data.topic);
+          var slots = node.outputs;
+        }
+        if (!slot) {
+          slot = new GraphBox.Connection(data.topic);
+          slots.push(slot);
+          node.updateHTML();
+          this.graph.updateBounds();
+        }
+        this.graph.nodes.map(function(node) {
+          (data.is_input ? node.outputs : node.inputs).map(function(other) {
+            if (other.name == slot.name) {
+              slot.connect(other);
+            }
+          });
         });
-      });
-      node.outputs.map(function(output) {
-        output.targets = (subscribers[output.name] || []).map(function(node) {
-          return node.input(output.name);
-        });
-      });
-    });
+        this.graph.draw();
+        break;
 
-    // Update the graph
-    this.graph.nodes.map(function(node) {
-      node.updateHTML();
-    });
-    this.graph.updateBounds();
+      case 'destroy_slot':
+        // TODO: easy but usually not needed
+        break;
+    }
   }
-};
-
-// Propagate new connections to the server
-ride.graph.onconnection = function(input, output) {
-  console.log('linking', output.name, 'to', input.name);
-  ROS.call('/ride/link/create', {
-    from_topic: output.name,
-    to_topic: input.name,
-    msg_type: 'std_msgs/String'
-  });
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -152,8 +104,23 @@ ride.graph.onconnection = function(input, output) {
 
 ROS.onopen = function() {
   ui.setConnected(true);
-  ROS.call('/ride/package/list', {}, function(data) {
+
+  // Make sure we are subscribed first before we start, otherwise it will be a
+  // race condition and we might miss stuff. But ignore all updates until after
+  // we start successfully since they don't make sense otherwise.
+  var loaded = false;
+  ROS.subscribe('/ride/updates', function(data) {
+    if (loaded) {
+      ride.update(JSON.parse(data.data));
+    }
+  });
+  ROS.call('/ride/load', {}, function(data) {
+    data = JSON.parse(data.json);
+    data.updates.map(function(data) {
+      ride.update(data);
+    });
     ui.setPackages(data.packages);
+    loaded = true;
   });
 };
 
@@ -161,50 +128,13 @@ ROS.onclose = function() {
   ui.setConnected(false);
 };
 
-setInterval(function() {
-  ROS.call('/ride/node/list', {}, function(data) {
-    ride.updateNodeList(data.nodes.concat(data.owned_nodes));
-  });
-}, 500);
-
 ROS.connect();
 
 ////////////////////////////////////////////////////////////////////////////////
 // UI
 ////////////////////////////////////////////////////////////////////////////////
 
-var dropdownHTML = '\
-  <div class="dropdown">\
-    <a data-toggle="dropdown"><div class="caret"></div></a>\
-    <ul class="dropdown-menu"></ul>\
-  </div>\
-';
-
 var ui = {
-  ownedNodeInserted: function(node) {
-    function item(name, callback) {
-      return $('<li><a>' + name + '</a></li>')
-        .appendTo(menu).click(callback)[0];
-    }
-    $(dropdownHTML).insertAfter(node.titleElement);
-    var menu = $(node.element).find('.dropdown-menu')[0];
-
-    node.startElement = item('Start node', function() {
-      ROS.call('/ride/node/start', { name: node.name });
-    });
-
-    node.stopElement = item('Stop node', function() {
-      ROS.call('/ride/node/stop', { name: node.name });
-    });
-
-    item('Show terminal output', function() {
-      ROS.call('/ride/node/output', { name: node.name }, function(data) {
-        $('#terminal_output_data').html(escape_codes_to_html(data.data));
-        $('#terminal_output').modal('show');
-      });
-    });
-  },
-
   changeConnectionURL: function() {
     $('#new_connection_url').val(ROS.url);
     $('#change_connection_url').modal('show');
@@ -215,6 +145,15 @@ var ui = {
     ROS.url = $('#new_connection_url').val();
     ROS.connect();
     $('#change_connection_url').modal('hide');
+  },
+
+  setConnected: function(connected) {
+    if (connected) {
+      $('#connection_status').text('Connected to ' + ROS.url);
+    } else {
+      $('#connection_status').text('Trying to connect to ' + ROS.url);
+    }
+    ride.reset();
   },
 
   setPackages: function(packages) {
@@ -247,15 +186,6 @@ var ui = {
       insert_node.val('');
       insert_node.blur();
     }
-  },
-
-  setConnected: function(connected) {
-    if (connected) {
-      $('#connection_status').text('Connected to ' + ROS.url);
-    } else {
-      $('#connection_status').text('Trying to connect to ' + ROS.url);
-    }
-    ride.reset();
   }
 };
 
@@ -265,6 +195,7 @@ ui.setConnected(false);
 // Insert the graph where this script tag is in the DOM
 document.body.appendChild(ride.graph.element);
 ride.graph.updateBounds();
+ride.graph.draw();
 
 // Compute which input has focus
 var inputWithFocus = null;
@@ -307,6 +238,7 @@ function resizeGraph() {
     height: window.innerHeight - navbarHeight
   });
   ride.graph.updateBounds();
+  ride.graph.draw();
 }
 $(window).resize(resizeGraph);
 resizeGraph();

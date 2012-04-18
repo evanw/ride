@@ -8,9 +8,8 @@ var ROS = {
   subscribers: {},
 
   call: function(topic, data, callback) {
-    data.id = this.nextID++;
-    var service = (this.services[topic] || (this.services[topic] = {}))
-    service[data.id] = callback || null;
+    var service = (this.services[topic] || (this.services[topic] = []))
+    service.push(callback || null);
     this.send({ receiver: topic, msg: data });
   },
 
@@ -21,6 +20,7 @@ var ROS = {
   subscribe: function(topic, callback) {
     var subscriber = (this.subscribers[topic] || (this.subscribers[topic] = []));
     subscriber.push(callback);
+    this.call('/rosbridge/subscribe', [topic, -1]);
   },
 
   disconnect: function() {
@@ -50,12 +50,9 @@ var ROS = {
     };
     this.socket.onmessage = function(e) {
       var data = JSON.parse(e.data);
-      if (data.msg && data.receiver in ROS.services && data.msg.id in ROS.services[data.receiver]) {
-        var service = ROS.services[data.receiver];
-        var id = data.msg.id;
-        delete data.msg.id;
-        if (service[id]) service[id](data.msg);
-        delete service[id];
+      if (data.msg && data.receiver in ROS.services) {
+        var callback = ROS.services[data.receiver].shift();
+        if (callback) callback(data.msg);
       } else if (data.receiver in ROS.subscribers) {
         ROS.subscribers[data.receiver].map(function(subscriber) {
           subscriber(data.msg);

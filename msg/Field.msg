@@ -1,2 +1,0 @@
-string type
-string name

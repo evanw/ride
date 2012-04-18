@@ -209,6 +209,7 @@ var GraphBox = (function() {
         });
         this.prev = vec2(deltaX, deltaY);
         this.graph.updateBounds();
+        this.graph.draw();
       }
     },
 
@@ -364,9 +365,6 @@ var GraphBox = (function() {
         this.canvas.width = width;
         this.canvas.height = height;
       }
-
-      // Redraw the canvas since this method is called after moving things around
-      this.draw();
     },
 
     setSelection: function(nodes) {
@@ -418,6 +416,7 @@ var GraphBox = (function() {
         this.removeNode(this.nodes[0]);
       }
       this.updateBounds();
+      this.draw();
     }
   };
 
@@ -443,13 +442,11 @@ var GraphBox = (function() {
       this.disconnect(other);
       this.targets.push(other);
       other.targets.push(this);
-      if (this.node && this.node.graph) this.node.graph.draw();
     },
 
     disconnect: function(other) {
       removeFromList(this.targets, other);
       removeFromList(other.targets, this);
-      if (this.node && this.node.graph) this.node.graph.draw();
     }
   };
 
