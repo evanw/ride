@@ -109,7 +109,6 @@ class OwnedNode:
         if self.process:
             self.ride.kill_process(self.process)
         self.ride.updates.destroy_node(self)
-        self.ride.kill_node(self.name)
 
     def input(self, topic):
         if topic not in self.inputs:
@@ -182,6 +181,8 @@ class OwnedNode:
     def stop(self):
         if self.process:
             if self.status == STATUS_STOPPING:
+                # Don't use self.ride.kill_process(self.process) because we
+                # are still checking for the return code in self.poll()
                 self.process.kill()
             else:
                 self.process.send_signal(signal.SIGINT)
@@ -217,7 +218,6 @@ class Link:
         self.ride.names_to_stop_avoiding.add(self.name)
         self.ride.updates.destroy_link(self)
         self.ride.kill_process(self.process)
-        self.ride.kill_node(self.name)
 
 class Updates:
     def __init__(self):
@@ -292,9 +292,8 @@ class RIDE:
         self.owned_nodes = {}
         self.links = {}
         self.updates = Updates()
-        self.temporary_topic_count = 0
+        self.unique_name_count = 0
         self.killed_processes = set()
-        self.node_names_to_kill = set()
 
         # We want to avoid generating normal nodes for nodes that are links or
         # owned nodes. The problem is that once we delete links and owned nodes,
@@ -320,18 +319,36 @@ class RIDE:
         rospy.Service('/ride/link/destroy', ride.srv.LinkDestroy, self.link_destroy_service)
 
     def unique_topic_name(self):
-        self.temporary_topic_count += 1
-        return '/ride_temporary_topic_%d' % self.temporary_topic_count
+        # This needs to be global because things don't work sometimes otherwise.
+        # For example, if the generated names are in the "/ride_topics/"
+        # namespace then ImageTransport puts "/camera_info" in
+        # "/ride_topics/camera_info" and the remapping fails.
+        self.unique_name_count += 1
+        return '/ride_unique_topic_%d' % self.unique_name_count
 
     def unique_node_name(self, prefix):
-        i = 2
-        name = prefix = '/' + re.sub('[^A-Za-z0-9]', '_', prefix)
-        names = set(self.nodes.keys() + self.owned_nodes.keys() + NODE_NAMES_TO_IGNORE)
-        names |= set(link.name for link in self.links.values())
-        while name in names:
-            name = prefix + '_%d' % i
-            i += 1
-        return name
+        # BUGFIX: We can't reuse node names, so make them all different. Assume
+        # no node will use any node name prefixed with "ride". If we don't prepend
+        # "ride" then we run the risk of colliding with another node name. We could
+        # test against all current node names, except there's a bug with creating
+        # the same node twice.
+        #
+        # This function used to return the prefix plus the lowest number that made
+        # the name unique, but you created and destroyed the same thing twice the
+        # nodes had the same name. This should be fine since there's only one node
+        # with that name active at a time, except that second node then becomes
+        # immortal. Even after that node is killed, the topics it used are still
+        # registered to its name. To unregister them I was using:
+        #
+        #     rosnode.cleanup_master_blacklist(roslib.scriptutil.get_master(), [name])
+        #
+        # but that doesn't throw an error and doesn't unregister the node. This
+        # is odd because it looks like exactly what "rosnode cleanup" does. Running
+        # "rosnode cleanup" from the terminal works, yet even if I run
+        # rosnode.rosnode_cleanup() from ride.py it doesn't work. WTF.
+        self.unique_name_count += 1
+        prefix = re.sub('[^A-Za-z0-9]', '_', prefix)
+        return '/ride_%s_%d' % (prefix, self.unique_name_count)
 
     def load_service(self, request):
         '''Implements the /ride/load service'''
@@ -411,11 +428,6 @@ class RIDE:
             self.nodes[name] = Node(self, name)
             return self.nodes[name]
         return None
-
-    def kill_node(self, node_name):
-        # Topic registrations don't time out and will persist after killed
-        # processes if we don't manually unregister them
-        self.node_names_to_kill.add(node_name)
 
     def kill_process(self, process):
         # Kill a process we are about to forget about. Since it will be defunct
@@ -501,18 +513,6 @@ class RIDE:
             process.poll()
             if process.returncode is not None:
                 self.killed_processes.remove(process)
-
-        # Repeatedly try killing nodes until they die, otherwise topic
-        # registrations will stay around since they don't expire.
-        # TODO: This doesn't work either! WTF! Sometimes this just
-        # repeatedly tries to kill a node with no errors but the node
-        # doesn't die. I then have to run "rosnode cleanup" from the
-        # terminal even though this looks like it's the exact same code
-        # as the code below. I can't run "rosnode cleanup" as a child
-        # process here though as it kills all nodes that don't ping
-        # immediately and may kill valid nodes.
-        self.node_names_to_kill &= node_names
-        rosnode.cleanup_master_blacklist(roslib.scriptutil.get_master(), list(self.node_names_to_kill))
 
 class DB:
     def __init__(self):
