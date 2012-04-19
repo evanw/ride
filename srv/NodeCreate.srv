@@ -1,4 +1,4 @@
 string package
 string binary
 ----
-string name
+bool worked

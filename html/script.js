@@ -26,17 +26,19 @@ var ride = {
   },
 
   insertNode: function(package, binary) {
-    ROS.call('/ride/node/create', { package: package, binary: binary }, function(data) {
-      ROS.call('/ride/node/start', { name: data.name });
-    });
+    ROS.call('/ride/node/create', { package: package, binary: binary });
   },
 
   update: function(data) {
     switch (data.type) {
       case 'create_node':
         var node = new GraphBox.Node(data.name);
-        node.readOnlyFlag = !data.is_owned;
+        if (data.is_owned) {
+          node.detailText = 'Starting...';
+          node.readOnlyFlag = false;
+        }
         this.graph.addNode(node);
+        if (data.is_owned) ui.ownedNodeAdded(node);
         this.graph.updateBounds();
         this.graph.draw();
         break;
@@ -129,6 +131,30 @@ var ride = {
         });
         this.graph.draw();
         break;
+
+      case 'update_owned_node':
+        var node = this.graph.node(data.name);
+        if (!node) break;
+        switch (data.status) {
+          case STATUS_STARTING:
+            node.detailText = 'Starting...';
+            break;
+          case STATUS_STARTED:
+            node.detailText = '';
+            break;
+          case STATUS_STOPPING:
+            node.detailText = 'Stopping...';
+            break;
+          case STATUS_STOPPED:
+            node.detailText = (data.return_code === null) ? '' : 'Exited with code ' + data.return_code;
+            break;
+        }
+        node.updateHTML();
+        $(node.startElement).toggle(data.status == STATUS_STOPPED);
+        $(node.stopElement).toggle(data.status != STATUS_STOPPED);
+        this.graph.updateBounds();
+        this.graph.draw();
+        break;
     }
   },
 
@@ -198,7 +224,44 @@ ROS.connect();
 // UI
 ////////////////////////////////////////////////////////////////////////////////
 
+var dropdownHTML = '\
+  <div class="dropdown">\
+    <a data-toggle="dropdown"><div class="caret"></div></a>\
+    <ul class="dropdown-menu"></ul>\
+  </div>\
+';
+
 var ui = {
+  ownedNodeAdded: function(node) {
+    // Create dropdown menu
+    function item(name, callback) {
+      return $('<li><a>' + name + '</a></li>')
+        .appendTo(menu).click(callback)[0];
+    }
+    $(dropdownHTML).insertAfter(node.titleElement);
+    var menu = $(node.element).find('.dropdown-menu')[0];
+
+    // Start node
+    node.startElement = item('Start node', function() {
+      ROS.call('/ride/node/start', { name: node.name });
+    });
+    $(node.startElement).hide();
+
+    // Stop node
+    node.stopElement = item('Stop node', function() {
+      ROS.call('/ride/node/stop', { name: node.name });
+    });
+    $(node.stopElement).show();
+
+    // Show terminal output
+    item('Show terminal output', function() {
+      ROS.call('/ride/node/output', { name: node.name }, function(data) {
+        $('#terminal_output_data').html(escape_codes_to_html(data.output));
+        $('#terminal_output').modal('show');
+      });
+    });
+  },
+
   changeConnectionURL: function() {
     $('#new_connection_url').val(ROS.url);
     $('#change_connection_url').modal('show');

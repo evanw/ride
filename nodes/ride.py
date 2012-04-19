@@ -10,6 +10,7 @@ import signal
 import pickle
 import ride.srv
 import subprocess
+from ros import rosnode
 from std_msgs.msg import String
 
 STATUS_STARTING = 0
@@ -17,8 +18,8 @@ STATUS_STARTED = 1
 STATUS_STOPPING = 2
 STATUS_STOPPED = 3
 
-TOPIC_NAMES_TO_IGNORE = [] # ['/rosout']
-NODE_NAMES_TO_IGNORE = [] # ['/rosout', '/rosbridge', '/ride']
+TOPIC_NAMES_TO_IGNORE = ['/rosout']
+NODE_NAMES_TO_IGNORE = ['/rosout', '/rosbridge', '/ride']
 
 def run(*args):
     '''run the provided command and return its stdout'''
@@ -95,18 +96,20 @@ class OwnedNode:
         self.outputs = {}
         self.path = path
         self.stdout = ''
-        self.status = STATUS_STOPPED
-        self.return_code = 0
+        self.status = STATUS_STARTING
+        self.return_code = None
         self.process = None
         self.remappings = {}
         self.ride.updates.create_node(self)
         self.ride.names_to_avoid.add(name)
+        self.start()
 
     def __del__(self):
         self.ride.names_to_stop_avoiding.add(self.name)
         if self.process:
-            self.process.send_signal(signal.SIGINT)
+            self.ride.kill_process(self.process)
         self.ride.updates.destroy_node(self)
+        self.ride.kill_node(self.name)
 
     def input(self, topic):
         if topic not in self.inputs:
@@ -121,7 +124,31 @@ class OwnedNode:
     def start(self):
         # Don't keep old processes around
         if self.process:
-            self.process.kill()
+            self.ride.kill_process(self.process)
+
+        # The goal of this IDE is to dynamically reconnect ROS nodes while the
+        # graph is running. This requires remapping topic names on the fly.
+        # While ROS supports remappings, they can only be done before publisher
+        # objects are created (i.e. only at initialization time) and cannot be
+        # updated at runtime. To do runtime editing of the graph, we need to
+        # remap all possible topic names at the start and then dynamically add
+        # and remove special forwarder nodes that implement the connections.
+        #
+        # The problem is that we don't know all possible topic names. Instead
+        # we do the next best thing, which is to remember all topic names we
+        # have ever seen during a node's lifetime. Then, the next time that
+        # node is run, we will be able to remap those topics and do dynamic
+        # connections.
+        #
+        # While in theory we can just remap all observed topics, this doesn't
+        # always work because some nodes derive topic names using the name of
+        # another topic as a prefix. For example, the ar_recog node publishes
+        # to topics including /ar/image and /ar/image/theora. We can try to
+        # remap these using /ar/image/theora:=/t1 and /ar/image:=t2 but since
+        # the /theora is appended to /ar/image after it has been remapped,
+        # the generated topic name will be /t2/theora and our remapping to t1
+        # will fail. To account for this, we automatically add both remappings
+        # in this case (/ar/image/theora:=/t1 and /t2/theora:=/t1).
 
         # Start off with the topic names
         map = {}
@@ -146,6 +173,7 @@ class OwnedNode:
         self.process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         self.status = STATUS_STARTING
         self.stdout = '$ ' + self.path + '\n'
+        self.ride.updates.update_owned_node(self)
 
         # Make sure self.process.stdout.read() won't block
         f = self.process.stdout
@@ -153,8 +181,12 @@ class OwnedNode:
 
     def stop(self):
         if self.process:
-            self.process.send_signal(signal.SIGINT)
-            self.status = STATUS_STOPPING
+            if self.status == STATUS_STOPPING:
+                self.process.kill()
+            else:
+                self.process.send_signal(signal.SIGINT)
+                self.status = STATUS_STOPPING
+                self.ride.updates.update_owned_node(self)
 
     def poll(self):
         if self.process:
@@ -167,6 +199,7 @@ class OwnedNode:
                 self.status = STATUS_STOPPED
                 self.return_code = self.process.returncode
                 self.process = None
+                self.ride.updates.update_owned_node(self)
 
 class Link:
     def __init__(self, ride, from_topic, to_topic):
@@ -182,8 +215,9 @@ class Link:
 
     def __del__(self):
         self.ride.names_to_stop_avoiding.add(self.name)
-        self.process.send_signal(signal.SIGINT)
         self.ride.updates.destroy_link(self)
+        self.ride.kill_process(self.process)
+        self.ride.kill_node(self.name)
 
 class Updates:
     def __init__(self):
@@ -243,6 +277,14 @@ class Updates:
             'to_topic': link.to_topic,
         }, send)
 
+    def update_owned_node(self, node, send=True):
+        return self.send({
+            'type': 'update_owned_node',
+            'name': node.name,
+            'status': node.status,
+            'return_code': node.return_code,
+        }, send)
+
 class RIDE:
     def __init__(self):
         self.db = DB()
@@ -251,6 +293,8 @@ class RIDE:
         self.links = {}
         self.updates = Updates()
         self.temporary_topic_count = 0
+        self.killed_processes = set()
+        self.node_names_to_kill = set()
 
         # We want to avoid generating normal nodes for nodes that are links or
         # owned nodes. The problem is that once we delete links and owned nodes,
@@ -271,6 +315,7 @@ class RIDE:
         rospy.Service('/ride/node/destroy', ride.srv.NodeDestroy, self.node_destroy_service)
         rospy.Service('/ride/node/start', ride.srv.NodeStart, self.node_start_service)
         rospy.Service('/ride/node/stop', ride.srv.NodeStop, self.node_stop_service)
+        rospy.Service('/ride/node/output', ride.srv.NodeOutput, self.node_output_service)
         rospy.Service('/ride/link/create', ride.srv.LinkCreate, self.link_create_service)
         rospy.Service('/ride/link/destroy', ride.srv.LinkDestroy, self.link_destroy_service)
 
@@ -281,7 +326,8 @@ class RIDE:
     def unique_node_name(self, prefix):
         i = 2
         name = prefix = '/' + re.sub('[^A-Za-z0-9]', '_', prefix)
-        names = set(self.nodes.keys() + self.owned_nodes.keys())
+        names = set(self.nodes.keys() + self.owned_nodes.keys() + NODE_NAMES_TO_IGNORE)
+        names |= set(link.name for link in self.links.values())
         while name in names:
             name = prefix + '_%d' % i
             i += 1
@@ -293,6 +339,8 @@ class RIDE:
         updates = []
         for node in nodes:
             updates.append(self.updates.create_node(node, False))
+        for node in self.owned_nodes.values():
+            updates.append(self.updates.update_owned_node(node, False))
         for node in nodes:
             for slot in node.inputs.values() + node.outputs.values():
                 updates.append(self.updates.create_slot(slot, False))
@@ -308,7 +356,7 @@ class RIDE:
         name = self.unique_node_name(request.binary)
         path = self.db.path_of_binary(request.package, request.binary)
         self.owned_nodes[name] = OwnedNode(self, name, path)
-        return ride.srv.NodeCreateResponse(name)
+        return ride.srv.NodeCreateResponse(True)
 
     def node_destroy_service(self, request):
         '''Implements the /ride/node/destroy service'''
@@ -330,6 +378,12 @@ class RIDE:
             self.owned_nodes[request.name].stop()
             return ride.srv.NodeStopResponse(True)
         return ride.srv.NodeStopResponse(False)
+
+    def node_output_service(self, request):
+        '''Implements the /ride/node/output service'''
+        if request.name in self.owned_nodes:
+            return ride.srv.NodeOutputResponse(self.owned_nodes[request.name].stdout, True)
+        return ride.srv.NodeOutputResponse('', False)
 
     def link_create_service(self, request):
         '''Implements the /ride/link/create service'''
@@ -353,15 +407,31 @@ class RIDE:
             return self.owned_nodes[name]
         if name in self.nodes:
             return self.nodes[name]
-        if name not in self.names_to_avoid:
+        if name not in self.names_to_avoid and name not in NODE_NAMES_TO_IGNORE:
             self.nodes[name] = Node(self, name)
             return self.nodes[name]
         return None
 
+    def kill_node(self, node_name):
+        # Topic registrations don't time out and will persist after killed
+        # processes if we don't manually unregister them
+        self.node_names_to_kill.add(node_name)
+
+    def kill_process(self, process):
+        # Kill a process we are about to forget about. Since it will be defunct
+        # if we don't read it's exit status, we actually have to remember it and
+        # keep polling it until it dies because that's how Unix processes work.
+        process.kill()
+        self.killed_processes.add(process)
+
     def poll(self):
         # Read the current system state from the ROS master
         publishers, subscribers, _ = map(dict, rospy.get_master().getSystemState()[2])
-        node_names = set()
+        node_names = set(rosnode.get_node_names())
+
+        # Create new nodes (needed for nodes without any pub/sub topics)
+        for name in node_names:
+            self.node(name)
 
         # Link up published topics
         for topic in publishers:
@@ -413,6 +483,7 @@ class RIDE:
             # Check on the process
             if node.status == STATUS_STARTING and node.name in node_names:
                 node.status = STATUS_STARTED
+                self.updates.update_owned_node(node)
             node.poll()
 
             # Remember all observed topics for when we restart this node in the future
@@ -424,6 +495,24 @@ class RIDE:
 
         # Save all observed topics
         self.db.save()
+
+        # Keep polling killed child processes until they actually die
+        for process in list(self.killed_processes):
+            process.poll()
+            if process.returncode is not None:
+                self.killed_processes.remove(process)
+
+        # Repeatedly try killing nodes until they die, otherwise topic
+        # registrations will stay around since they don't expire.
+        # TODO: This doesn't work either! WTF! Sometimes this just
+        # repeatedly tries to kill a node with no errors but the node
+        # doesn't die. I then have to run "rosnode cleanup" from the
+        # terminal even though this looks like it's the exact same code
+        # as the code below. I can't run "rosnode cleanup" as a child
+        # process here though as it kills all nodes that don't ping
+        # immediately and may kill valid nodes.
+        self.node_names_to_kill &= node_names
+        rosnode.cleanup_master_blacklist(roslib.scriptutil.get_master(), list(self.node_names_to_kill))
 
 class DB:
     def __init__(self):
