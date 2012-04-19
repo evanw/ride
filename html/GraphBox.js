@@ -463,6 +463,7 @@ var GraphBox = (function() {
     this.graph = null;
     this.selected = false;
     this.name = name || '';
+    this.displayName = null;
     this.detailText = '';
     this.inputs = [];
     this.outputs = [];
@@ -507,7 +508,7 @@ var GraphBox = (function() {
     updateHTML: function() {
       // Update node content
       this.setSelected(this.selected);
-      this.titleElement.textContent = this.name;
+      this.titleElement.textContent = this.displayName || this.name;
       this.detailElement.textContent = this.detailText;
 
       // Clear the table

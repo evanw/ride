@@ -90,12 +90,13 @@ class OwnedNode:
         def __del__(self):
             self.ride.updates.destroy_slot(self)
 
-    def __init__(self, ride, name, path):
+    def __init__(self, ride, name, path, display_name):
         self.ride = ride
         self.name = name
         self.inputs = {}
         self.outputs = {}
         self.path = path
+        self.display_name = display_name
         self.stdout = ''
         self.status = STATUS_STARTING
         self.return_code = None
@@ -245,6 +246,7 @@ class Updates:
         }
         if isinstance(node, OwnedNode):
             data['is_owned'] = True
+            data['display_name'] = node.display_name
         return self.send(data, send)
 
     def destroy_node(self, node, send=True):
@@ -381,7 +383,7 @@ class RIDE:
         '''Implements the /ride/node/create service'''
         name = self.unique_node_name(request.binary)
         path = self.db.path_of_binary(request.package, request.binary)
-        self.owned_nodes[name] = OwnedNode(self, name, path)
+        self.owned_nodes[name] = OwnedNode(self, name, path, request.binary + ' (' + request.package + ')')
         return ride.srv.NodeCreateResponse(True)
 
     def node_destroy_service(self, request):

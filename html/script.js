@@ -36,6 +36,7 @@ var ride = {
         var node = new GraphBox.Node(data.name);
         if (data.is_owned) {
           node.detailText = 'Starting...';
+          node.displayName = data.display_name;
           node.readOnlyFlag = false;
         }
         this.graph.addNode(node);
