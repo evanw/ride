@@ -1,6 +1,9 @@
+- rosbridge bugs?
+  - rosbridge drops messages and there's no way to tell it to be reliable
+    this is fixed temporarily in ridebridge but needs an official fix
+  - need to unsubscribe dropped connections from everything they subscribed to
+    otherwise connecting multiple times means lots of copies of each message?
 - may need to have a way to rosmake a package
-- need real-time editing of connections
-- need to hide temporary forwarding nodes
 - show types of topics?
   - do topics even have a single type?
   - if so, maybe only show types along edges?
@@ -23,3 +26,6 @@ DONE
   - might be able to poll faster than 0.5 seconds
   - could send delta state instead of entire state
   - /rosbridge/subscribe drops lots of messages if you don't pass it -1
+    with -1 it only drops a few messages, still has queue_size of 10
+- need real-time editing of connections
+- need to hide temporary forwarding nodes
