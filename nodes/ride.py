@@ -17,6 +17,7 @@ STATUS_STARTING = 0
 STATUS_STARTED = 1
 STATUS_STOPPING = 2
 STATUS_STOPPED = 3
+STATUS_ERROR = 4
 
 TOPIC_NAMES_TO_IGNORE = ['/rosout']
 NODE_NAMES_TO_IGNORE = ['/rosout', '/rosbridge', '/ride']
@@ -107,7 +108,7 @@ class OwnedNode:
     def __del__(self):
         self.ride.names_to_stop_avoiding.add(self.name)
         if self.process:
-            self.ride.kill_process(self.process)
+            self.ride.soft_kill_process(self.process)
         self.ride.updates.destroy_node(self)
 
     def input(self, topic):
@@ -123,7 +124,7 @@ class OwnedNode:
     def start(self):
         # Don't keep old processes around
         if self.process:
-            self.ride.kill_process(self.process)
+            self.ride.soft_kill_process(self.process)
 
         # The goal of this IDE is to dynamically reconnect ROS nodes while the
         # graph is running. This requires remapping topic names on the fly.
@@ -169,20 +170,28 @@ class OwnedNode:
             command.append(topic + ':=' + map[topic])
 
         # Start the node again
-        self.process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        self.status = STATUS_STARTING
         self.stdout = '$ ' + self.path + '\n'
-        self.ride.updates.update_owned_node(self)
+        try:
+            # Start the node as a child process
+            self.process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            self.status = STATUS_STARTING
 
-        # Make sure self.process.stdout.read() won't block
-        f = self.process.stdout
-        fcntl.fcntl(f, fcntl.F_SETFL, fcntl.fcntl(f, fcntl.F_GETFL) | os.O_NONBLOCK)
+            # Make sure self.process.stdout.read() won't block
+            f = self.process.stdout
+            fcntl.fcntl(f, fcntl.F_SETFL, fcntl.fcntl(f, fcntl.F_GETFL) | os.O_NONBLOCK)
+        except Exception as e:
+            # This will fail if the file doesn't exist (need to use rosmake again)
+            self.stdout += str(e)
+            self.status = STATUS_ERROR
+
+        # Send the new status
+        self.ride.updates.update_owned_node(self)
 
     def stop(self):
         if self.process:
+            # Don't use self.ride.soft_kill_process(self.process) because we
+            # are still checking for the return code in self.poll()
             if self.status == STATUS_STOPPING:
-                # Don't use self.ride.kill_process(self.process) because we
-                # are still checking for the return code in self.poll()
                 self.process.kill()
             else:
                 self.process.send_signal(signal.SIGINT)
@@ -217,7 +226,7 @@ class Link:
     def __del__(self):
         self.ride.names_to_stop_avoiding.add(self.name)
         self.ride.updates.destroy_link(self)
-        self.ride.kill_process(self.process)
+        self.ride.soft_kill_process(self.process)
 
 class Updates:
     def __init__(self):
@@ -337,7 +346,7 @@ class RIDE:
         # the name unique, but you created and destroyed the same thing twice the
         # nodes had the same name. This should be fine since there's only one node
         # with that name active at a time, except that second node then becomes
-        # immortal. Even after that node is killed, the topics it used are still
+        # immortal. Even after that node crashes, the topics it used are still
         # registered to its name. To unregister them I was using:
         #
         #     rosnode.cleanup_master_blacklist(roslib.scriptutil.get_master(), [name])
@@ -429,11 +438,11 @@ class RIDE:
             return self.nodes[name]
         return None
 
-    def kill_process(self, process):
+    def soft_kill_process(self, process):
         # Kill a process we are about to forget about. Since it will be defunct
         # if we don't read it's exit status, we actually have to remember it and
         # keep polling it until it dies because that's how Unix processes work.
-        process.kill()
+        process.send_signal(signal.SIGINT)
         self.killed_processes.add(process)
 
     def poll(self):

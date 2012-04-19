@@ -6,6 +6,7 @@ var STATUS_STARTING = 0;
 var STATUS_STARTED = 1;
 var STATUS_STOPPING = 2;
 var STATUS_STOPPED = 3;
+var STATUS_ERROR = 4;
 
 var ride = {
   graph: new GraphBox.Graph(),
@@ -148,10 +149,13 @@ var ride = {
           case STATUS_STOPPED:
             node.detailText = (data.return_code === null) ? '' : 'Exited with code ' + data.return_code;
             break;
+          case STATUS_ERROR:
+            node.detailText = 'Could not be launched (run rosmake?)';
+            break;
         }
         node.updateHTML();
-        $(node.startElement).toggle(data.status == STATUS_STOPPED);
-        $(node.stopElement).toggle(data.status != STATUS_STOPPED);
+        $(node.startElement).toggle(data.status == STATUS_STOPPED || data.status == STATUS_ERROR);
+        $(node.stopElement).toggle(data.status != STATUS_STOPPED && data.status != STATUS_ERROR);
         this.graph.updateBounds();
         this.graph.draw();
         break;
