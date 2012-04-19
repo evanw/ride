@@ -18,7 +18,7 @@ STATUS_STOPPING = 2
 STATUS_STOPPED = 3
 
 TOPIC_NAMES_TO_IGNORE = [] # ['/rosout']
-NODE_NAMES_TO_IGNORE = [] # ['/rosout']
+NODE_NAMES_TO_IGNORE = [] # ['/rosout', '/rosbridge', '/ride']
 
 def run(*args):
     '''run the provided command and return its stdout'''
@@ -77,12 +77,12 @@ class Node:
 
 class OwnedNode:
     class Slot:
-        def __init__(self, ride, topic, is_input, node_name, original_name):
+        def __init__(self, ride, topic, is_input, node_name, original_topic):
             self.ride = ride
             self.topic = topic
             self.is_input = is_input
             self.node_name = node_name
-            self.original_name = original_name
+            self.original_topic = original_topic
             self.ride.updates.create_slot(self)
 
         def __del__(self):
@@ -99,12 +99,14 @@ class OwnedNode:
         self.return_code = 0
         self.process = None
         self.remappings = {}
-        self.ride.updates.create_owned_node(self)
+        self.ride.updates.create_node(self)
+        self.ride.names_to_avoid.add(name)
 
     def __del__(self):
+        self.ride.names_to_stop_avoiding.add(self.name)
         if self.process:
             self.process.send_signal(signal.SIGINT)
-        self.ride.updates.destroy_owned_node(self)
+        self.ride.updates.destroy_node(self)
 
     def input(self, topic):
         if topic not in self.inputs:
@@ -169,12 +171,19 @@ class OwnedNode:
 class Link:
     def __init__(self, ride, from_topic, to_topic):
         self.ride = ride
-        self.name = self.ride.unique_node_name('/ride_link')
-        command = ['rosrun', 'topic_tools', 'mux', to_topic, from_topic, '__name:=' + self.name]
+        self.from_topic = from_topic
+        self.to_topic = to_topic
+        self.name = self.ride.unique_node_name('ride_link')
+        self.ride.names_to_avoid.add(self.name)
+        command = ['rosrun', 'topic_tools', 'mux', to_topic, from_topic]
+        command += ['__name:=' + self.name.replace('/', '')]
         self.process = subprocess.Popen(command)
+        self.ride.updates.create_link(self)
 
     def __del__(self):
+        self.ride.names_to_stop_avoiding.add(self.name)
         self.process.send_signal(signal.SIGINT)
+        self.ride.updates.destroy_link(self)
 
 class Updates:
     def __init__(self):
@@ -186,10 +195,14 @@ class Updates:
         return data
 
     def create_node(self, node, send=True):
-        return self.send({
+        data = {
             'type': 'create_node',
             'name': node.name,
-        }, send)
+            'is_owned': False,
+        }
+        if isinstance(node, OwnedNode):
+            data['is_owned'] = True
+        return self.send(data, send)
 
     def destroy_node(self, node, send=True):
         return self.send({
@@ -197,25 +210,16 @@ class Updates:
             'name': node.name,
         }, send)
 
-    def create_owned_node(self, node, send=True):
-        return self.send({
-            'type': 'create_owned_node',
-            'name': node.name,
-        }, send)
-
-    def destroy_owned_node(self, node, send=True):
-        return self.send({
-            'type': 'destroy_owned_node',
-            'name': node.name,
-        }, send)
-
     def create_slot(self, slot, send=True):
-        return self.send({
+        data = {
             'type': 'create_slot',
             'topic': slot.topic,
             'is_input': slot.is_input,
             'node_name': slot.node_name,
-         }, send)
+        }
+        if isinstance(slot, OwnedNode.Slot):
+            data['original_topic'] = slot.original_topic
+        return self.send(data, send)
 
     def destroy_slot(self, slot, send=True):
         return self.send({
@@ -223,6 +227,20 @@ class Updates:
             'topic': slot.topic,
             'is_input': slot.is_input,
             'node_name': slot.node_name,
+        }, send)
+
+    def create_link(self, link, send=True):
+        return self.send({
+            'type': 'create_link',
+            'from_topic': link.from_topic,
+            'to_topic': link.to_topic,
+        }, send)
+
+    def destroy_link(self, link, send=True):
+        return self.send({
+            'type': 'destroy_link',
+            'from_topic': link.from_topic,
+            'to_topic': link.to_topic,
         }, send)
 
 class RIDE:
@@ -233,80 +251,112 @@ class RIDE:
         self.links = {}
         self.updates = Updates()
         self.temporary_topic_count = 0
+
+        # We want to avoid generating normal nodes for nodes that are links or
+        # owned nodes. The problem is that once we delete links and owned nodes,
+        # the actual underlying ROS node may continue to exist, at least for a
+        # little while, while it's still shutting down. To fix this, we don't
+        # create any normal nodes whose names are in the names_to_avoid set.
+        # We don't want this set to grow indefinitely but links and owned nodes
+        # can't remove themselves from the set when they are deleted because
+        # the ROS nodes will live on afterwards. Instead, a name is flagged for
+        # removal by putting it in the names_to_stop_avoiding set, and then the
+        # main polling loop will remove it when the ROS node disappears.
+        self.names_to_avoid = set()
+        self.names_to_stop_avoiding = set()
+
+        # Start up services (all member functions)
         rospy.Service('/ride/load', ride.srv.Load, self.load_service)
         rospy.Service('/ride/node/create', ride.srv.NodeCreate, self.node_create_service)
         rospy.Service('/ride/node/destroy', ride.srv.NodeDestroy, self.node_destroy_service)
         rospy.Service('/ride/node/start', ride.srv.NodeStart, self.node_start_service)
         rospy.Service('/ride/node/stop', ride.srv.NodeStop, self.node_stop_service)
+        rospy.Service('/ride/link/create', ride.srv.LinkCreate, self.link_create_service)
+        rospy.Service('/ride/link/destroy', ride.srv.LinkDestroy, self.link_destroy_service)
 
     def unique_topic_name(self):
         self.temporary_topic_count += 1
         return '/ride_temporary_topic_%d' % self.temporary_topic_count
 
-    def unique_node_name(self, like):
+    def unique_node_name(self, prefix):
         i = 2
-        name = base = '/' + re.sub('[^A-Za-z0-9]', '_', like)
+        name = prefix = '/' + re.sub('[^A-Za-z0-9]', '_', prefix)
         names = set(self.nodes.keys() + self.owned_nodes.keys())
         while name in names:
-            name = base + '_%d' % i
+            name = prefix + '_%d' % i
             i += 1
         return name
 
     def load_service(self, request):
-        # Called when a new client loads
+        '''Implements the /ride/load service'''
+        nodes = self.nodes.values() + self.owned_nodes.values()
         updates = []
-        for name in self.nodes:
-            node = self.nodes[name]
+        for node in nodes:
             updates.append(self.updates.create_node(node, False))
+        for node in nodes:
             for slot in node.inputs.values() + node.outputs.values():
                 updates.append(self.updates.create_slot(slot, False))
+        for link in self.links.values():
+            updates.append(self.updates.create_link(link))
         return ride.srv.LoadResponse(json.dumps({
             'updates': updates,
             'packages': self.db.packages,
         }))
 
     def node_create_service(self, request):
-        # Find the path of the binary (more secure than letting the
-        # client do it, especially if the package list is limited)
-        for package in self.db.packages:
-            if package['name'] == request.package:
-                for binary in package['binaries']:
-                    if binary.endswith(request.binary):
-                        path = binary
-
-        # Create the new owned node and tell the client about it
+        '''Implements the /ride/node/create service'''
         name = self.unique_node_name(request.binary)
+        path = self.db.path_of_binary(request.package, request.binary)
         self.owned_nodes[name] = OwnedNode(self, name, path)
         return ride.srv.NodeCreateResponse(name)
 
     def node_destroy_service(self, request):
-        # Destroy an owned node by name and tell the client if it worked
+        '''Implements the /ride/node/destroy service'''
         if request.name in self.owned_nodes:
             del self.owned_nodes[request.name]
             return ride.srv.NodeDestroyResponse(True)
         return ride.srv.NodeDestroyResponse(False)
 
     def node_start_service(self, request):
-        # Start an owned node by name and tell the client if it worked
+        '''Implements the /ride/node/start service'''
         if request.name in self.owned_nodes:
             self.owned_nodes[request.name].start()
             return ride.srv.NodeStartResponse(True)
         return ride.srv.NodeStartResponse(False)
 
     def node_stop_service(self, request):
-        # Stop an owned node by name and tell the client if it worked
+        '''Implements the /ride/node/stop service'''
         if request.name in self.owned_nodes:
             self.owned_nodes[request.name].stop()
             return ride.srv.NodeStopResponse(True)
         return ride.srv.NodeStopResponse(False)
 
+    def link_create_service(self, request):
+        '''Implements the /ride/link/create service'''
+        key = request.from_topic, request.to_topic
+        if key not in self.links:
+            self.links[key] = Link(self, request.from_topic, request.to_topic)
+            return ride.srv.LinkCreateResponse(True)
+        return ride.srv.LinkCreateResponse(False)
+
+    def link_destroy_service(self, request):
+        '''Implements the /ride/link/destroy service'''
+        key = request.from_topic, request.to_topic
+        if key in self.links:
+            del self.links[key]
+            return ride.srv.LinkDestroyResponse(True)
+        return ride.srv.LinkDestroyResponse(False)
+
     def node(self, name):
         # Find the named node or create one if it doesn't exist yet
         if name in self.owned_nodes:
             return self.owned_nodes[name]
-        if name not in self.nodes:
+        if name in self.nodes:
+            return self.nodes[name]
+        if name not in self.names_to_avoid:
             self.nodes[name] = Node(self, name)
-        return self.nodes[name]
+            return self.nodes[name]
+        return None
 
     def poll(self):
         # Read the current system state from the ROS master
@@ -320,7 +370,9 @@ class RIDE:
             for name in publishers[topic]:
                 if name in NODE_NAMES_TO_IGNORE:
                     continue
-                self.node(name).output(topic)
+                node = self.node(name)
+                if node is not None:
+                    node.output(topic)
                 node_names.add(name)
 
         # Link up subscribed topics
@@ -330,8 +382,15 @@ class RIDE:
             for name in subscribers[topic]:
                 if name in NODE_NAMES_TO_IGNORE:
                     continue
-                self.node(name).input(topic)
+                node = self.node(name)
+                if node is not None:
+                    node.input(topic)
                 node_names.add(name)
+
+        # Remove old node names
+        killed_names = self.names_to_stop_avoiding - node_names
+        self.names_to_stop_avoiding -= killed_names
+        self.names_to_avoid -= killed_names
 
         # Remove old slots
         for name, node in self.nodes.items() + self.owned_nodes.items():
@@ -347,25 +406,49 @@ class RIDE:
             if name not in node_names:
                 del self.nodes[name]
 
-        # Check on the processes for owned nodes
+        # Update owned nodes
         for name in self.owned_nodes:
             node = self.owned_nodes[name]
+
+            # Check on the process
             if node.status == STATUS_STARTING and node.name in node_names:
                 node.status = STATUS_STARTED
             node.poll()
 
+            # Remember all observed topics for when we restart this node in the future
+            if node.path not in self.db.topics:
+                self.db.topics[node.path] = set(), set()
+            published, subscribed = self.db.topics[node.path]
+            published |= set(topic for topic in node.outputs if node.outputs[topic].original_topic is None)
+            subscribed |= set(topic for topic in node.inputs if node.inputs[topic].original_topic is None)
+
+        # Save all observed topics
+        self.db.save()
+
 class DB:
     def __init__(self):
         # Try to load information from the cache
-        packages_path = os.path.join(os.path.dirname(__file__), '.package_cache')
-        topics_path = os.path.join(os.path.dirname(__file__), '.topic_cache')
+        self.packages_path = os.path.join(os.path.dirname(__file__), '.package_cache')
+        self.topics_path = os.path.join(os.path.dirname(__file__), '.topic_cache')
         print 'loading all packages...'
-        self.packages = cache_load(packages_path, [])
-        self.topics = cache_load(topics_path, {})
+        self.packages = cache_load(self.packages_path, [])
+        self.topics = cache_load(self.topics_path, {})
         if not self.packages:
             self.packages = self.list_packages()
-            cache_save(packages_path, self.packages)
+            cache_save(self.packages_path, self.packages)
         print 'finished loading'
+
+    def save(self):
+        cache_save(self.topics_path, self.topics)
+
+    def path_of_binary(self, package, binary):
+        # Find the path of the binary (more secure than letting the
+        # client do it, especially if the package list is limited)
+        for info in self.packages:
+            if info['name'] == package:
+                for path in info['binaries']:
+                    if path.endswith(binary):
+                        return path
 
     def list_packages(self):
         # Find the names and locations of all packages

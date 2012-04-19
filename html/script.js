@@ -35,6 +35,7 @@ var ride = {
     switch (data.type) {
       case 'create_node':
         var node = new GraphBox.Node(data.name);
+        node.readOnlyFlag = !data.is_owned;
         this.graph.addNode(node);
         this.graph.updateBounds();
         this.graph.draw();
@@ -49,25 +50,11 @@ var ride = {
         }
         break;
 
-      case 'create_owned_node':
-        var node = new GraphBox.Node(data.name);
-        this.graph.addNode(node);
-        this.graph.updateBounds();
-        this.graph.draw();
-        break;
-
-      case 'destroy_owned_node':
-        var node = this.graph.node(data.name);
-        if (node) {
-          this.graph.removeNode(node);
-          this.graph.updateBounds();
-          this.graph.draw();
-        }
-        break;
-
       case 'create_slot':
         var node = this.graph.node(data.node_name);
         if (!node) break;
+
+        // Find the slot and list of slots
         if (data.is_input) {
           var slot = node.input(data.topic);
           var slots = node.inputs;
@@ -75,12 +62,22 @@ var ride = {
           var slot = node.output(data.topic);
           var slots = node.outputs;
         }
+
+        // Create the slot if it doesn't exist
         if (!slot) {
           slot = new GraphBox.Connection(data.topic);
+          if (data.original_topic) {
+            slot.displayName = data.original_topic;
+            slot.readOnlyFlag = false;
+          } else {
+            slot.readOnlyFlag = true;
+          }
           slots.push(slot);
           node.updateHTML();
           this.graph.updateBounds();
         }
+
+        // Connect the slots to all other slots of the opposite type with the same name
         this.graph.nodes.map(function(node) {
           (data.is_input ? node.outputs : node.inputs).map(function(other) {
             if (other.name == slot.name) {
@@ -92,10 +89,77 @@ var ride = {
         break;
 
       case 'destroy_slot':
-        // TODO: easy but usually not needed
+        var node = this.graph.node(data.node_name);
+        if (!node) break;
+
+        // Find the slot and list of slots
+        if (data.is_input) {
+          var slot = node.input(data.topic);
+          var slots = node.inputs;
+        } else {
+          var slot = node.output(data.topic);
+          var slots = node.outputs;
+        }
+
+        // Remove the slot if it exists
+        if (slot) {
+          slots.splice(slots.indexOf(slot), 1);
+          node.updateHTML();
+          this.graph.updateBounds();
+          this.graph.draw();
+        }
+        break;
+
+      case 'create_link':
+        var slots = this.getLinkSlots(data.from_topic, data.to_topic);
+        slots.inputs.map(function(input) {
+          slots.outputs.map(function(output) {
+            input.connect(output);
+          });
+        });
+        this.graph.draw();
+        break;
+
+      case 'destroy_link':
+        var slots = this.getLinkSlots(data.from_topic, data.to_topic);
+        slots.inputs.map(function(input) {
+          slots.outputs.map(function(output) {
+            input.disconnect(output);
+          });
+        });
+        this.graph.draw();
         break;
     }
+  },
+
+  getLinkSlots: function(from_topic, to_topic) {
+    var slots = { inputs: [], outputs: [] };
+    this.graph.nodes.map(function(node) {
+      node.inputs.map(function(input) {
+        if (input.name == to_topic) slots.inputs.push(input);
+      });
+      node.outputs.map(function(output) {
+        if (output.name == from_topic) slots.outputs.push(output);
+      });
+    });
+    return slots;
   }
+};
+
+// Propagate new connections to the server
+ride.graph.onconnection = function(input, output) {
+  ROS.call('/ride/link/create', {
+    from_topic: output.name,
+    to_topic: input.name
+  });
+};
+
+// Propagate new disconnections to the server
+ride.graph.ondisconnection = function(input, output) {
+  ROS.call('/ride/link/destroy', {
+    from_topic: output.name,
+    to_topic: input.name
+  });
 };
 
 ////////////////////////////////////////////////////////////////////////////////
