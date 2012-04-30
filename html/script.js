@@ -1,18 +1,36 @@
 ////////////////////////////////////////////////////////////////////////////////
+// class LaunchFile
+////////////////////////////////////////////////////////////////////////////////
+
+var launchFileHTML = '\
+<li class="divider"></li>\
+<li class="nav-header"></li>\
+<li><a>Show terminal output</a></li>\
+<li><a>Stop and remove from list</a></li>\
+';
+
+function LaunchFile(name, id) {
+  this.name = name;
+  this.id = id;
+  this.menuElements = $(launchFileHTML);
+  this.menuElements[1].textContent = name;
+  this.menuElements[2].firstChild.href = 'javascript:ui.showLaunchFile(' + JSON.stringify(id) + ')';
+  this.menuElements[3].firstChild.href = 'javascript:ui.killLaunchFile(' + JSON.stringify(id) + ')';
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // RIDE
 ////////////////////////////////////////////////////////////////////////////////
 
-var STATUS_STARTING = 0;
-var STATUS_STARTED = 1;
-var STATUS_STOPPING = 2;
-var STATUS_STOPPED = 3;
-var STATUS_ERROR = 4;
-
 var ride = {
   graph: new GraphBox.Graph(),
+  launchFiles: {},
 
   reset: function() {
     this.graph.clear();
+    this.launchFiles = {};
+    $('#launch_files_menu').html('');
+    $('#launch_files').hide();
   },
 
   deleteSelection: function() {
@@ -26,8 +44,12 @@ var ride = {
     this.graph.setSelection(this.graph.nodes);
   },
 
-  insertNode: function(package, binary) {
-    ROS.call('/ride/node/create', { package: package, binary: binary });
+  insertNode: function(package, file) {
+    if (file.indexOf('.launch') == file.length - '.launch'.length) {
+      ROS.call('/ride/launch/create', { package: package, launch_file: file });
+    } else {
+      ROS.call('/ride/node/create', { package: package, binary: file });
+    }
   },
 
   update: function(data) {
@@ -147,6 +169,26 @@ var ride = {
         if (!data.is_running && node.relaunchWhenStopped) {
           node.relaunchWhenStopped = false;
           ROS.call('/ride/node/start', { name: data.name });
+        }
+        break;
+
+      case 'create_launch_file':
+        var launchFile = new LaunchFile(data.name, data.id);
+        this.launchFiles[launchFile.id] = launchFile;
+        launchFile.menuElements.appendTo('#launch_files_menu');
+        var count = $('#launch_files_menu .divider').length;
+        $('#launch_files_count').html('Launch Files (' + count + ') <b class="caret"></b>');
+        $('#launch_files').show();
+        break;
+
+      case 'destroy_launch_file':
+        var launchFile = this.launchFiles[data.id];
+        if (launchFile) {
+          launchFile.menuElements.remove();
+          delete this.launchFiles[data.id];
+          var count = $('#launch_files_menu .divider').length;
+          $('#launch_files_count').html('Launch Files (' + count + ') <b class="caret"></b>');
+          if (!count) $('#launch_files').hide();
         }
         break;
     }
@@ -312,9 +354,9 @@ var ui = {
     var autocomplete = [];
     packages = packages;
     packages.map(function(package) {
-      package.binaries.map(function(binary) {
-        binary = binary.substring(binary.lastIndexOf('/') + 1);
-        autocomplete.push(binary + ' (' + package.name + ')');
+      package.binaries.concat(package.launch_files).map(function(path) {
+        path = path.substring(path.lastIndexOf('/') + 1);
+        autocomplete.push(path + ' (' + package.name + ')');
       });
     });
     var insert_node = $('#insert_node');
@@ -326,18 +368,29 @@ var ui = {
   },
 
   insertNode: function() {
-    // Right now this relies on the format 'binaryName (packageName)' because
+    // Right now this relies on the format 'fileName (packageName)' because
     // that's what is used in the autocomplete
     var insert_node = $('#insert_node');
     var name = insert_node.val();
     var match = /^([^ ]+) \(([^ ]+)\)$/.exec(name);
     if (match) {
       var packageName = match[2];
-      var binaryName = match[1];
-      ride.insertNode(packageName, binaryName);
+      var fileName = match[1];
+      ride.insertNode(packageName, fileName);
       insert_node.val('');
       insert_node.blur();
     }
+  },
+
+  showLaunchFile: function(id) {
+    ROS.call('/ride/launch/output', { id: id }, function(data) {
+        $('#terminal_output_data').html(escape_codes_to_html(data.output));
+        $('#terminal_output').modal('show');
+    });
+  },
+
+  killLaunchFile: function(id) {
+    ROS.call('/ride/launch/destroy', { id: id });
   }
 };
 

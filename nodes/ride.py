@@ -19,6 +19,7 @@ NODE_NAMES_TO_IGNORE = ['/rosout', '/rosbridge', '/ride']
 
 def run(*args):
     '''run the provided command and return its stdout'''
+    args = sum([(arg if type(arg) == list else [arg]) for arg in args], [])
     print ' '.join(args)
     return subprocess.check_output(args).strip()
 
@@ -216,8 +217,11 @@ class OwnedNode:
         # Start the node again
         try:
             # Start the node as a child process
-            self.process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env_vars)
+            self.process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env_vars)
             self.status = 'Starting...'
+
+            # We won't be needing stdin, but don't let it block us
+            self.process.stdin.close()
 
             # Make sure self.process.stdout.read() won't block
             f = self.process.stdout
@@ -269,6 +273,37 @@ class Link:
         self.ride.names_to_stop_avoiding.add(self.name)
         self.ride.updates.destroy_link(self)
         self.ride.soft_kill_process(self.process)
+
+class LaunchFile:
+    def __init__(self, ride, name, path, id):
+        self.ride = ride
+        self.name = name
+        self.id = id
+        self.stdout = '$ roslaunch ' + path + '\n'
+        self.process = subprocess.Popen(['roslaunch', path], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        self.ride.updates.create_launch_file(self)
+
+        # We won't be needing stdin, but don't let it block us
+        self.process.stdin.close()
+
+        # Make sure self.process.stdout.read() won't block
+        f = self.process.stdout
+        fcntl.fcntl(f, fcntl.F_SETFL, fcntl.fcntl(f, fcntl.F_GETFL) | os.O_NONBLOCK)
+
+    def __del__(self):
+        self.ride.updates.destroy_launch_file(self)
+        if self.process:
+            self.ride.soft_kill_process(self.process)
+
+    def poll(self):
+        if self.process:
+            self.process.poll()
+            try:
+                self.stdout += self.process.stdout.read()
+            except:
+                pass
+            if self.process.returncode is not None:
+                self.process = None
 
 class Updates:
     def __init__(self):
@@ -329,6 +364,19 @@ class Updates:
             'to_topic': link.to_topic,
         }, send)
 
+    def create_launch_file(self, launch_file, send=True):
+        return self.send({
+            'type': 'create_launch_file',
+            'name': launch_file.name,
+            'id': launch_file.id,
+        }, send)
+
+    def destroy_launch_file(self, launch_file, send=True):
+        return self.send({
+            'type': 'destroy_launch_file',
+            'id': launch_file.id,
+        }, send)
+
     def update_owned_node(self, node, send=True):
         return self.send({
             'type': 'update_owned_node',
@@ -342,6 +390,7 @@ class RIDE:
         self.db = DB()
         self.nodes = {}
         self.owned_nodes = {}
+        self.launch_files = {}
         self.links = {}
         self.updates = Updates()
         self.unique_name_count = 0
@@ -362,6 +411,9 @@ class RIDE:
 
         # Start up services (all member functions)
         rospy.Service('/ride/load', ride.srv.Load, self.load_service)
+        rospy.Service('/ride/launch/create', ride.srv.LaunchCreate, self.launch_create_service)
+        rospy.Service('/ride/launch/destroy', ride.srv.LaunchDestroy, self.launch_destroy_service)
+        rospy.Service('/ride/launch/output', ride.srv.LaunchOutput, self.launch_output_service)
         rospy.Service('/ride/node/create', ride.srv.NodeCreate, self.node_create_service)
         rospy.Service('/ride/node/destroy', ride.srv.NodeDestroy, self.node_destroy_service)
         rospy.Service('/ride/node/start', ride.srv.NodeStart, self.node_start_service)
@@ -417,17 +469,50 @@ class RIDE:
                 updates.append(self.updates.create_slot(slot, False))
         for link in self.links.values():
             updates.append(self.updates.create_link(link))
+        for launch_file in self.launch_files.values():
+            updates.append(self.updates.create_launch_file(launch_file))
         return ride.srv.LoadResponse(json.dumps({
             'updates': updates,
             'packages': self.db.packages,
         }))
 
+    def launch_create_service(self, request):
+        '''Implements the /ride/launch/create service'''
+        path = self.db.path_of_package_file(request.package, request.launch_file, 'launch_files')
+        if path:
+            name = request.launch_file + ' (' + request.package + ')'
+            launch_file = LaunchFile(self, name, path, self.unique_name_count)
+            self.unique_name_count += 1
+            self.launch_files[launch_file.id] = launch_file
+            return ride.srv.LaunchCreateResponse(True)
+        return ride.srv.LaunchCreateResponse(False)
+
+    def launch_destroy_service(self, request):
+        '''Implements the /ride/launch/destroy service'''
+        if request.id in self.launch_files:
+            del self.launch_files[request.id]
+            return ride.srv.LaunchDestroyResponse(True)
+        return ride.srv.LaunchDestroyResponse(False)
+
+    def launch_output_service(self, request):
+        '''Implements the /ride/launch/output service'''
+        if request.id in self.launch_files:
+            output = self.launch_files[request.id].stdout
+            junk = ('Checking log directory for disk usage. This may take awhile.\n'
+                + 'Press Ctrl-C to interrupt\n'
+                + 'Done checking log file disk usage. Usage is <1GB.\n')
+            output = output.replace(junk, '')
+            return ride.srv.LaunchOutputResponse(output, True)
+        return ride.srv.LaunchOutputResponse('', False)
+
     def node_create_service(self, request):
         '''Implements the /ride/node/create service'''
-        name = self.unique_node_name(request.binary)
-        path = self.db.path_of_binary(request.package, request.binary)
-        self.owned_nodes[name] = OwnedNode(self, name, path, request.binary + ' (' + request.package + ')')
-        return ride.srv.NodeCreateResponse(True)
+        path = self.db.path_of_package_file(request.package, request.binary, 'binaries')
+        if path:
+            name = self.unique_node_name(request.binary)
+            self.owned_nodes[name] = OwnedNode(self, name, path, request.binary + ' (' + request.package + ')')
+            return ride.srv.NodeCreateResponse(True)
+        return ride.srv.NodeCreateResponse(False)
 
     def node_destroy_service(self, request):
         '''Implements the /ride/node/destroy service'''
@@ -504,8 +589,11 @@ class RIDE:
         # Kill a process we are about to forget about. Since it will be defunct
         # if we don't read it's exit status, we actually have to remember it and
         # keep polling it until it dies because that's how Unix processes work.
-        process.send_signal(signal.SIGINT)
-        self.killed_processes.add(process)
+        try:
+            process.send_signal(signal.SIGINT)
+            self.killed_processes.add(process)
+        except OSError:
+            pass
 
     def poll(self):
         # Read the current system state from the ROS master
@@ -585,6 +673,10 @@ class RIDE:
             if process.returncode is not None:
                 self.killed_processes.remove(process)
 
+        # Update launch files
+        for launch_file in list(self.launch_files.values()):
+            launch_file.poll()
+
 class DB:
     def __init__(self):
         # Try to load information from the cache
@@ -601,57 +693,65 @@ class DB:
     def save(self):
         cache_save(self.topics_path, self.topics)
 
-    def path_of_binary(self, package, binary):
-        # Find the path of the binary (more secure than letting the
+    def path_of_package_file(self, package, file, list_name):
+        # Find the path of the file (more secure than letting the
         # client do it, especially if the package list is limited)
         for info in self.packages:
             if info['name'] == package:
-                for path in info['binaries']:
-                    if path.endswith(binary):
+                for path in info[list_name]:
+                    if path.endswith('/' + file):
                         return path
 
     def list_packages(self):
         # Find the names and locations of all packages
         lines = split_words(run('rospack', 'list'))
-        packages = [{ 'name': name, 'path': path, 'binaries': [] } for name, path in lines]
+        packages = [{ 'name': name, 'path': path } for name, path in lines]
 
-        # Search for binaries using find (this is how rosrun does autocomplete)
-        for i, package in enumerate(packages):
-            print '[%d/%d]' % (i + 1, len(packages)),
-            binaries = run('find', package['path'], '-type', 'f', '-perm', '+111')
-            if binaries:
-                # People make random stuff executable so try to filter that out
-                lines = binaries.split('\n')
-                extensions = [
-                    '.cmake',
-                    '.cpp',
-                    '.css',
-                    '.c',
-                    '.dox',
-                    '.dsp',
-                    '.gif',
-                    '.hpp',
-                    '.html',
-                    '.h',
-                    '.jpg',
-                    '.log',
-                    '.make',
-                    '.msg',
-                    '.pdf',
-                    '.png',
-                    '.sln',
-                    '.srv',
-                    '.txt',
-                    '.vcproj',
-                    '.xml',
-                ]
-                package['binaries'] = [line for line in lines if
-                    all(not line.endswith(ext) for ext in extensions) and
-                    '/CMakeFiles/' not in line and
-                    'Makefile' not in line and
-                    '/build/' not in line and
-                    '/.svn/' not in line and
-                    '/.git/' not in line]
+        # Find all executable files (this is how rosrun does autocomplete)
+        package_paths = [package['path'] for package in packages]
+        binaries = run('find', package_paths, '-type', 'f', '-perm', '+111').split('\n')
+
+        # People make random stuff executable so try to filter that out
+        extensions = [
+            '.cmake',
+            '.cpp',
+            '.css',
+            '.c',
+            '.dox',
+            '.dsp',
+            '.gif',
+            '.hpp',
+            '.html',
+            '.h',
+            '.jpg',
+            '.launch',
+            '.log',
+            '.make',
+            '.msg',
+            '.pdf',
+            '.png',
+            '.sln',
+            '.srv',
+            '.txt',
+            '.vcproj',
+            '.xml',
+        ]
+        binaries = [path for path in binaries if
+            all(not path.endswith(ext) for ext in extensions) and
+            '/CMakeFiles/' not in path and
+            'Makefile' not in path and
+            '/build/' not in path and
+            '/.svn/' not in path and
+            '/.git/' not in path]
+
+        # Find all launch files
+        launch_files = run('find', package_paths, '-type', 'f', '-name', '*.launch').split('\n')
+
+        # Associate binaries and launch files with packages
+        for package in packages:
+            prefix = package['path']
+            package['binaries'] = [path for path in binaries if path.startswith(prefix)]
+            package['launch_files'] = [path for path in launch_files if path.startswith(prefix)]
 
         return packages
 
