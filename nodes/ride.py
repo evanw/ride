@@ -5,6 +5,7 @@ import os
 import re
 import json
 import fcntl
+import shlex
 import rospy
 import signal
 import pickle
@@ -12,12 +13,6 @@ import ride.srv
 import subprocess
 from ros import rosnode
 from std_msgs.msg import String
-
-STATUS_STARTING = 0
-STATUS_STARTED = 1
-STATUS_STOPPING = 2
-STATUS_STOPPED = 3
-STATUS_ERROR = 4
 
 TOPIC_NAMES_TO_IGNORE = ['/rosout']
 NODE_NAMES_TO_IGNORE = ['/rosout', '/rosbridge', '/ride']
@@ -98,10 +93,12 @@ class OwnedNode:
         self.path = path
         self.display_name = display_name
         self.stdout = ''
-        self.status = STATUS_STARTING
-        self.return_code = None
+        self.status = 'Not running'
         self.process = None
         self.remappings = {}
+        self.cmd_line_args = ''
+        self.rosparams = ''
+        self.env_vars = ''
         self.ride.updates.create_node(self)
         self.ride.names_to_avoid.add(name)
         self.start()
@@ -170,12 +167,57 @@ class OwnedNode:
         for topic in map:
             command.append(topic + ':=' + map[topic])
 
-        # Start the node again
+        # Prepare for an early return
         self.stdout = '$ ' + self.path + '\n'
+        self.status = 'Failed to launch'
+
+        # Shared parser logic for multiline key=value pairs
+        def parse_multiline(text):
+            for line in text.split('\n'):
+                line = line.strip()
+                if not line:
+                    continue
+                if '=' not in line:
+                    raise Exception('Line missing "="')
+                key, value = line.split('=', 1)
+                yield key.strip(), value.strip()
+
+        # Attempt to append command-line arguments
+        try:
+            command += shlex.split(self.cmd_line_args)
+            self.stdout = '$ ' + self.path + ' ' + self.cmd_line_args + '\n'
+        except Exception as e:
+            self.status = 'Failed to launch: Could not parse command-line arguments (%s)' % str(e)
+            self.ride.updates.update_owned_node(self)
+            return
+
+        # Attempt to parse environment variables
+        env_vars = dict(os.environ)
+        try:
+            for key, value in parse_multiline(self.env_vars):
+                env_vars[key] = value
+        except Exception as e:
+            self.status = 'Failed to launch: Could not parse environment variables (%s)' % str(e)
+            self.ride.updates.update_owned_node(self)
+            return
+
+        # Attempt to parse rosparams
+        try:
+            for key, value in parse_multiline(self.rosparams):
+                if key and '/' not in key:
+                    key = self.name + '/' + key # Handle private names
+                value = json.loads('{ "value": %s }' % value)['value']
+                rospy.set_param(key, value)
+        except Exception as e:
+            self.status = 'Failed to launch: Could not parse ROS params (%s)' % str(e)
+            self.ride.updates.update_owned_node(self)
+            return
+
+        # Start the node again
         try:
             # Start the node as a child process
-            self.process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-            self.status = STATUS_STARTING
+            self.process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env_vars)
+            self.status = 'Starting...'
 
             # Make sure self.process.stdout.read() won't block
             f = self.process.stdout
@@ -183,7 +225,7 @@ class OwnedNode:
         except Exception as e:
             # This will fail if the file doesn't exist (need to use rosmake again)
             self.stdout += str(e)
-            self.status = STATUS_ERROR
+            self.status = 'Failed to launch: popen() failed (run rosmake?)'
 
         # Send the new status
         self.ride.updates.update_owned_node(self)
@@ -192,11 +234,11 @@ class OwnedNode:
         if self.process:
             # Don't use self.ride.soft_kill_process(self.process) because we
             # are still checking for the return code in self.poll()
-            if self.status == STATUS_STOPPING:
+            if self.status == 'Stopping...':
                 self.process.kill()
             else:
                 self.process.send_signal(signal.SIGINT)
-                self.status = STATUS_STOPPING
+                self.status = 'Stopping...'
                 self.ride.updates.update_owned_node(self)
 
     def poll(self):
@@ -207,8 +249,7 @@ class OwnedNode:
             except:
                 pass
             if self.process.returncode is not None:
-                self.status = STATUS_STOPPED
-                self.return_code = self.process.returncode
+                self.status = 'Exited with return code %d' % self.process.returncode
                 self.process = None
                 self.ride.updates.update_owned_node(self)
 
@@ -293,7 +334,7 @@ class Updates:
             'type': 'update_owned_node',
             'name': node.name,
             'status': node.status,
-            'return_code': node.return_code,
+            'is_running': node.status in ['Starting...', '', 'Stopping...'],
         }, send)
 
 class RIDE:
@@ -326,6 +367,8 @@ class RIDE:
         rospy.Service('/ride/node/start', ride.srv.NodeStart, self.node_start_service)
         rospy.Service('/ride/node/stop', ride.srv.NodeStop, self.node_stop_service)
         rospy.Service('/ride/node/output', ride.srv.NodeOutput, self.node_output_service)
+        rospy.Service('/ride/node/settings/get', ride.srv.NodeSettingsGet, self.node_settings_get_service)
+        rospy.Service('/ride/node/settings/set', ride.srv.NodeSettingsSet, self.node_settings_set_service)
         rospy.Service('/ride/link/create', ride.srv.LinkCreate, self.link_create_service)
         rospy.Service('/ride/link/destroy', ride.srv.LinkDestroy, self.link_destroy_service)
 
@@ -412,6 +455,23 @@ class RIDE:
         if request.name in self.owned_nodes:
             return ride.srv.NodeOutputResponse(self.owned_nodes[request.name].stdout, True)
         return ride.srv.NodeOutputResponse('', False)
+
+    def node_settings_get_service(self, request):
+        '''Implements the /ride/node/settings/get service'''
+        if request.name in self.owned_nodes:
+            node = self.owned_nodes[request.name]
+            return ride.srv.NodeSettingsGetResponse(node.cmd_line_args, node.rosparams, node.env_vars, True)
+        return ride.srv.NodeSettingsGetResponse('', '', '', False)
+
+    def node_settings_set_service(self, request):
+        '''Implements the /ride/node/settings/set service'''
+        if request.name in self.owned_nodes:
+            node = self.owned_nodes[request.name]
+            node.cmd_line_args = request.cmd_line_args
+            node.rosparams = request.rosparams
+            node.env_vars = request.env_vars
+            return ride.srv.NodeSettingsSetResponse(True)
+        return ride.srv.NodeSettingsSetResponse(False)
 
     def link_create_service(self, request):
         '''Implements the /ride/link/create service'''
@@ -504,8 +564,8 @@ class RIDE:
             node = self.owned_nodes[name]
 
             # Check on the process
-            if node.status == STATUS_STARTING and node.name in node_names:
-                node.status = STATUS_STARTED
+            if node.status == 'Starting...' and node.name in node_names:
+                node.status = ''
                 self.updates.update_owned_node(node)
             node.poll()
 

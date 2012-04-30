@@ -9,8 +9,9 @@
     <script src="bootstrap/js/bootstrap.min.js"></script>
     <style>
        body { overflow: hidden; }
-       .modal { display: none; top: 200px; margin-top: 0; }
+       .modal { display: none; top: 200px; margin-top: 0; width: 530px; }
        #terminal_output_data { background: black; color: white; border: none; }
+       #launch_settings textarea, #launch_settings input { width: 490px; }
        .navbar .container { width: 100%; }
        .navbar .brand { margin-left: -10px; }
        .GraphBox .title { padding-right: 28px; }
@@ -48,6 +49,31 @@
       </div>
     </div>
 
+    <div id="launch_settings" class="modal">
+      <div class="modal-header">
+        <a class="close" data-dismiss="modal">&times;</a>
+        <h3>Launch Settings</h3>
+      </div>
+      <div class="modal-body">
+        <p>These settings will take effect when the node is next started.</p>
+        <form onsubmit="javascript:ui.setLaunchSettings(true);return false">
+          <input id="launch_settings_node_name" type="hidden">
+          <p><b>Command-line arguments</b></p>
+          <input id="launch_settings_cmd_line_args" placeholder='--flag --key="value with spaces"'>
+          <!-- HACK: Placeholders can't have newlines, but browsers will wrap text after a lot of spaces -->
+          <p><b>ROS params</b> (key = value, one per line, JSON syntax)</p>
+          <textarea id="launch_settings_rosparams" placeholder="param1 = 0                                                                                                                                /namespace/param2 = { a: 1, b: 2 }"></textarea>
+          <p><b>Environment variables</b> (key = value, one per line)</p>
+          <textarea id="launch_settings_env_vars" placeholder="VAR1 = 0                                                                                                                                VAR2 = text with spaces"></textarea>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <a class="btn" data-dismiss="modal">Cancel</a>
+        <a href="javascript:ui.setLaunchSettings(false)" class="btn">Change</a>
+        <a href="javascript:ui.setLaunchSettings(true)" class="btn btn-primary">Change and Relaunch</a>
+      </div>
+    </div>
+
     <div id="change_connection_url" class="modal">
       <div class="modal-header">
         <a class="close" data-dismiss="modal">&times;</a>
@@ -62,13 +88,13 @@
         <form class="form-horizontal" onsubmit="javascript:ui.setConnectionURL();return false">
           <div class="control-group">
             <label class="control-label" for="new_connection_url">Connection URL</label>
-            <div class="controls"><input type="text" class="input-xlarge" id="new_connection_url"></div>
+            <div class="controls"><input type="text" class="input-xlarge" id="new_connection_url" placeholder="ws://localhost:9000"></div>
           </div>
         </form>
       </div>
       <div class="modal-footer">
         <a class="btn" data-dismiss="modal">Cancel</a>
-        <a href="javascript:ui.setConnectionURL()" class="btn btn-primary">Change URL</a>
+        <a href="javascript:ui.setConnectionURL()" class="btn btn-primary">Change</a>
       </div>
     </div>
 

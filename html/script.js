@@ -137,28 +137,17 @@ var ride = {
       case 'update_owned_node':
         var node = this.graph.node(data.name);
         if (!node) break;
-        switch (data.status) {
-          case STATUS_STARTING:
-            node.detailText = 'Starting...';
-            break;
-          case STATUS_STARTED:
-            node.detailText = '';
-            break;
-          case STATUS_STOPPING:
-            node.detailText = 'Stopping...';
-            break;
-          case STATUS_STOPPED:
-            node.detailText = (data.return_code === null) ? '' : 'Exited with code ' + data.return_code;
-            break;
-          case STATUS_ERROR:
-            node.detailText = 'Could not be launched (run rosmake?)';
-            break;
-        }
+        node.isRunning = data.is_running;
+        node.detailText = data.status;
         node.updateHTML();
-        $(node.startElement).toggle(data.status == STATUS_STOPPED || data.status == STATUS_ERROR);
-        $(node.stopElement).toggle(data.status != STATUS_STOPPED && data.status != STATUS_ERROR);
+        $(node.startElement).toggle(!data.is_running);
+        $(node.stopElement).toggle(data.is_running);
         this.graph.updateBounds();
         this.graph.draw();
+        if (!data.is_running && node.relaunchWhenStopped) {
+          node.relaunchWhenStopped = false;
+          ROS.call('/ride/node/start', { name: data.name });
+        }
         break;
     }
   },
@@ -258,6 +247,17 @@ var ui = {
     });
     $(node.stopElement).show();
 
+    // Launch settings
+    item('Launch settings', function() {
+      ROS.call('/ride/node/settings/get', { name: node.name }, function(data) {
+        $('#launch_settings_node_name').val(node.name);
+        $('#launch_settings_cmd_line_args').val(data.cmd_line_args);
+        $('#launch_settings_rosparams').val(data.rosparams);
+        $('#launch_settings_env_vars').val(data.env_vars);
+        $('#launch_settings').modal('show');
+      });
+    });
+
     // Show terminal output
     item('Show terminal output', function() {
       ROS.call('/ride/node/output', { name: node.name }, function(data) {
@@ -277,6 +277,26 @@ var ui = {
     ROS.url = $('#new_connection_url').val();
     ROS.connect();
     $('#change_connection_url').modal('hide');
+  },
+
+  setLaunchSettings: function(relaunch) {
+    var node_name = $('#launch_settings_node_name').val();
+    ROS.call('/ride/node/settings/set', {
+      name: node_name,
+      cmd_line_args: $('#launch_settings_cmd_line_args').val(),
+      rosparams: $('#launch_settings_rosparams').val(),
+      env_vars: $('#launch_settings_env_vars').val()
+    }, function() {
+      var node = ride.graph.node(node_name);
+      if (!node) return;
+      if (node.isRunning) {
+        ROS.call('/ride/node/stop', { name: node_name });
+        node.relaunchWhenStopped = true;
+      } else {
+        ROS.call('/ride/node/start', { name: node_name });
+      }
+    });
+    $('#launch_settings').modal('hide');
   },
 
   setConnected: function(connected) {
@@ -331,8 +351,8 @@ ride.graph.draw();
 
 // Compute which input has focus
 var inputWithFocus = null;
-$('input').focus(function() { inputWithFocus = this; });
-$('input').blur(function() { inputWithFocus = null; });
+$('input, textarea').focus(function() { inputWithFocus = this; });
+$('input, textarea').blur(function() { inputWithFocus = null; });
 
 // Deselect input when the graph is clicked
 $(ride.graph.element).click(function() {

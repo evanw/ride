@@ -1,0 +1,6 @@
+string name
+string cmd_line_args
+string rosparams
+string env_vars
+----
+bool worked
