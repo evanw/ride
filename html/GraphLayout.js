@@ -70,7 +70,7 @@ var GraphLayout = (function() {
       return this.nodes.find(name);
     },
 
-    layout: function(padding) {
+    layout: function(paddingBig, paddingSmall) {
       // Force a topological order on the graph using DFS, ignoring cycles
       function dfs(node, x, y) {
         var height = 0;
@@ -78,8 +78,8 @@ var GraphLayout = (function() {
         visited.add(node.name, node);
         node.outputs.all().map(function(output) {
           if (!visited.contains(output.name)) {
-            if (height) height += padding;
-            height += dfs(output, x + node.width + padding, y + height);
+            if (height) height += paddingSmall;
+            height += dfs(output, x + node.width + paddingBig, y + height);
           }
         });
         height = Math.max(node.height, height);
@@ -89,7 +89,7 @@ var GraphLayout = (function() {
       }
 
       // Start the layout in the top left
-      var x = padding, y = padding;
+      var x = paddingSmall, y = paddingSmall;
       var visited = new Map();
       var all = this.nodes.all();
 
@@ -97,7 +97,7 @@ var GraphLayout = (function() {
       // be sure they are all visited in the case of cycles)
       all.filter(function(n) { return !n.inputs.all().length; })
         .concat(all.filter(function(n) { return n.inputs.all().length; }))
-        .map(function(n) { y += dfs(n, x, y) + padding; });
+        .map(function(n) { y += dfs(n, x, y) + paddingSmall; });
     }
   };
 

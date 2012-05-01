@@ -25,10 +25,12 @@ function LaunchFile(name, id) {
 var ride = {
   graph: new GraphBox.Graph(),
   launchFiles: {},
+  topicTypes: {},
 
   reset: function() {
     this.graph.clear();
     this.launchFiles = {};
+    this.topicTypes = {};
     $('#launch_files_menu').html('');
     $('#launch_files').hide();
   },
@@ -87,9 +89,11 @@ var ride = {
         if (!slot) {
           slot = new GraphBox.Connection(data.topic);
           if (data.original_topic) {
+            slot.linkText = this.topicTypes[data.original_topic] || null;
             slot.displayName = data.original_topic;
             slot.readOnlyFlag = false;
           } else {
+            slot.linkText = this.topicTypes[data.topic] || null;
             slot.readOnlyFlag = true;
           }
           slots.push(slot);
@@ -177,6 +181,17 @@ var ride = {
           $('#launch_files_count').html('Launch Files (' + count + ') <b class="caret"></b>');
           if (!count) $('#launch_files').hide();
         }
+        break;
+
+      case 'set_topic_type':
+        this.topicTypes[data.topic] = data.msg_type;
+        this.graph.nodes.map(function(node) {
+          node.outputs.map(function(output) {
+            if (output.name in ride.topicTypes) {
+              output.linkText = ride.topicTypes[output.name];
+            }
+          });
+        });
         break;
     }
   },
@@ -408,7 +423,7 @@ var ui = {
     });
 
     // Perform layout and read back the results
-    layoutGraph.layout(50);
+    layoutGraph.layout(150, 50);
     ride.graph.nodes.map(function(node) {
       var layoutNode = layoutGraph.node(node.name);
       node.moveTo(layoutNode.x, layoutNode.y);

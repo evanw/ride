@@ -385,6 +385,13 @@ class Updates:
             'is_running': node.status in ['Starting...', '', 'Stopping...'],
         }, send)
 
+    def set_topic_type(self, topic, type, send=True):
+        return self.send({
+            'type': 'set_topic_type',
+            'topic': topic,
+            'msg_type': type,
+        }, send)
+
 class RIDE:
     def __init__(self):
         self.db = DB()
@@ -392,6 +399,7 @@ class RIDE:
         self.owned_nodes = {}
         self.launch_files = {}
         self.links = {}
+        self.topic_types = {}
         self.updates = Updates()
         self.unique_name_count = 0
         self.killed_processes = set()
@@ -471,6 +479,8 @@ class RIDE:
             updates.append(self.updates.create_link(link))
         for launch_file in self.launch_files.values():
             updates.append(self.updates.create_launch_file(launch_file))
+        for topic in self.topic_types:
+            updates.append(self.updates.set_topic_type(topic, self.topic_types[topic]))
         return ride.srv.LoadResponse(json.dumps({
             'updates': updates,
             'packages': self.db.packages,
@@ -599,6 +609,13 @@ class RIDE:
         # Read the current system state from the ROS master
         publishers, subscribers, _ = map(dict, rospy.get_master().getSystemState()[2])
         node_names = set(rosnode.get_node_names())
+        topic_types = rospy.get_master().getPublishedTopics('')[2]
+
+        # Update the dictionary of topic types
+        for topic, type in topic_types:
+            if self.topic_types.get(topic, None) != type:
+                self.updates.set_topic_type(topic, type)
+                self.topic_types[topic] = type
 
         # Create new nodes (needed for nodes without any pub/sub topics)
         for name in node_names:

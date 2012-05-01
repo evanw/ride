@@ -69,7 +69,7 @@ var GraphBox = (function() {
     if (index != -1) items.splice(index, 1);
   }
 
-  function drawLink(c, ax, ay, bx, by, isReadOnly) {
+  function drawLink(c, ax, ay, bx, by, isReadOnly, linkText) {
     // Set up draw styles
     c.save();
     c.strokeStyle = c.fillStyle = isReadOnly ? '#777' : '#FFF';
@@ -100,6 +100,85 @@ var GraphBox = (function() {
     c.lineTo(bx - 10 * cos - 5 * sin, by - 10 * sin + 5 * cos);
     c.lineTo(bx - 10 * cos + 5 * sin, by - 10 * sin - 5 * cos);
     c.fill();
+
+    // Everything below here is drawing curved text
+    if (!linkText) return;
+
+    // Subdivide the cubic bezier into line segments
+    var points = [];
+    var lengths = [];
+    var totalLength = 0;
+    for (var i = 0; i <= 100; i++) {
+      var t0 = i / 100;
+      var t1 = 1 - t0;
+
+      // Calculate the point at t
+      var c0 = t1 * t1 * t1;
+      var c1 = t0 * t1 * t1 * 3;
+      var c2 = t0 * t0 * t1 * 3;
+      var c3 = t0 * t0 * t0;
+      var x = ax * c0 + (ax + 100) * c1 + (bx - 90) * c2 + bx * c3;
+      var y = ay * (c0 + c1) + by * (c2 + c3);
+
+      // Calculate the derivative at t
+      var c0 = t1 * t1 * -3;
+      var c1 = (9 * t0 - 12) * t0 + 3;
+      var c2 = (6 - 9 * t0) * t0;
+      var c3 = t0 * t0 * 3;
+      var nx = ax * c0 + (ax + 100) * c1 + (bx - 90) * c2 + bx * c3;
+      var ny = ay * (c0 + c1) + by * (c2 + c3);
+
+      // Offset the point to move the text away from the line
+      var scale = 15 / Math.sqrt(nx * nx + ny * ny);
+      x += ny * scale;
+      y -= nx * scale;
+
+      // Calculate the length of the line segment
+      var next = { x: x, y: y };
+      points.push(next);
+      if (i) {
+        var dx = next.x - prev.x;
+        var dy = next.y - prev.y;
+        var length = Math.sqrt(dx * dx + dy * dy);
+        lengths.push(length);
+        totalLength += length;
+      }
+      var prev = next;
+    }
+
+    // Measure character widths
+    c.font = '12px Arial';
+    c.textAlign = 'center';
+    var widths = [];
+    var totalWidth = 0;
+    for (var i = 0; i < linkText.length; i++) {
+      var width = c.measureText(linkText[i]).width * 1.1;
+      widths.push(width);
+      totalWidth += width;
+    }
+
+    // Use those line segments to draw text
+    c.fillStyle = '#FFF';
+    var length = (totalLength - totalWidth) * 0.25;
+    for (var i = 0; i < linkText.length; i++) {
+      var lengthSoFar = 0;
+      var targetLength = length + widths[i] / 2;
+      for (var j = 0; j < 100; j++) {
+        if (lengthSoFar + lengths[j] >= targetLength) break;
+        lengthSoFar += lengths[j];
+      }
+      var prev = points[j];
+      var next = points[j + 1];
+      var dx = next.x - prev.x;
+      var dy = next.y - prev.y;
+      var percent = (targetLength - lengthSoFar) / lengths[j];
+      c.save();
+      c.translate(prev.x + dx * percent, prev.y + dy * percent);
+      c.rotate(Math.atan2(dy, dx));
+      c.fillText(linkText[i], 0, 6);
+      c.restore();
+      length += widths[i];
+    }
     c.restore();
   }
 
@@ -283,7 +362,7 @@ var GraphBox = (function() {
       if (this.linking) {
         var start = connectionSite(this.output, this.graph, true);
         var end = this.input ? connectionSite(this.input, this.graph, false) : this.mouse;
-        drawLink(this.graph.context, start.x, start.y, end.x, end.y);
+        drawLink(this.graph.context, start.x, start.y, end.x, end.y, false, this.output.linkText);
       }
     }
   };
@@ -344,9 +423,10 @@ var GraphBox = (function() {
           var input = node.inputs[j];
           var to = connectionSite(input, this, false);
           for (var k = 0; k < input.targets.length; k++) {
-            var from = connectionSite(input.targets[k], this, true);
-            var isReadOnly = input.isReadOnly() && input.targets[k].isReadOnly();
-            drawLink(c, from.x, from.y, to.x, to.y, isReadOnly);
+            var output = input.targets[k];
+            var from = connectionSite(output, this, true);
+            var isReadOnly = input.isReadOnly() && output.isReadOnly();
+            drawLink(c, from.x, from.y, to.x, to.y, isReadOnly, output.linkText);
           }
         }
       }
@@ -437,6 +517,7 @@ var GraphBox = (function() {
     this.targets = [];
     this.element = null;
     this.displayName = null;
+    this.linkText = null;
   }
 
   Connection.prototype = {
