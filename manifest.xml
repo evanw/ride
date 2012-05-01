@@ -9,7 +9,6 @@
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/ride</url>
 
-  <depend package="rosbridge"/>
   <depend package="std_msgs"/>
   <depend package="rospy"/>
 
