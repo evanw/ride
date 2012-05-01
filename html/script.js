@@ -186,6 +186,11 @@ var ride = {
       case 'set_topic_type':
         this.topicTypes[data.topic] = data.msg_type;
         this.graph.nodes.map(function(node) {
+          node.inputs.map(function(input) {
+            if (input.name in ride.topicTypes) {
+              input.linkText = ride.topicTypes[input.name];
+            }
+          });
           node.outputs.map(function(output) {
             if (output.name in ride.topicTypes) {
               output.linkText = ride.topicTypes[output.name];

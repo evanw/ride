@@ -69,10 +69,14 @@ var GraphBox = (function() {
     if (index != -1) items.splice(index, 1);
   }
 
-  function drawLink(c, ax, ay, bx, by, isReadOnly, linkText) {
+  function drawLink(c, ax, ay, bx, by, isReadOnly, inputLinkText, outputLinkText) {
+    var typeMismatch = (inputLinkText && outputLinkText && inputLinkText != outputLinkText);
+    var linkText = outputLinkText;
+    if (typeMismatch) linkText = outputLinkText + ' != ' + inputLinkText;
+
     // Set up draw styles
     c.save();
-    c.strokeStyle = c.fillStyle = isReadOnly ? '#777' : '#FFF';
+    c.strokeStyle = c.fillStyle = typeMismatch ? '#F00' : isReadOnly ? '#777' : '#FFF';
     c.lineWidth = 2;
     c.shadowBlur = 3;
     c.shadowColor = 'black';
@@ -159,11 +163,11 @@ var GraphBox = (function() {
 
     // Use those line segments to draw text
     c.fillStyle = '#FFF';
-    var length = (totalLength - totalWidth) * 0.25;
+    var length = (totalLength - totalWidth) / 2;
     for (var i = 0; i < linkText.length; i++) {
       var lengthSoFar = 0;
       var targetLength = length + widths[i] / 2;
-      for (var j = 0; j < 100; j++) {
+      for (var j = 0; j + 2 < points.length; j++) {
         if (lengthSoFar + lengths[j] >= targetLength) break;
         lengthSoFar += lengths[j];
       }
@@ -362,7 +366,7 @@ var GraphBox = (function() {
       if (this.linking) {
         var start = connectionSite(this.output, this.graph, true);
         var end = this.input ? connectionSite(this.input, this.graph, false) : this.mouse;
-        drawLink(this.graph.context, start.x, start.y, end.x, end.y, false, this.output.linkText);
+        drawLink(this.graph.context, start.x, start.y, end.x, end.y, false, this.input && this.input.linkText, this.output.linkText);
       }
     }
   };
@@ -426,7 +430,7 @@ var GraphBox = (function() {
             var output = input.targets[k];
             var from = connectionSite(output, this, true);
             var isReadOnly = input.isReadOnly() && output.isReadOnly();
-            drawLink(c, from.x, from.y, to.x, to.y, isReadOnly, output.linkText);
+            drawLink(c, from.x, from.y, to.x, to.y, isReadOnly, input.linkText, output.linkText);
           }
         }
       }
