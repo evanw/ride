@@ -1,16 +1,21 @@
+TODO
+- minimap for large programs
+- automatic graph layout
+
+MAYBE
+- show types of topics?
+  - do topics even have a single type?
+  - if so, maybe only show types along edges?
+- have a way to rosmake a package
+- how to kill image_view when you close the window? what's going on?
+
+DONE
+- fix bug with phantom connection when deleting a node
 - rosbridge bugs?
   - rosbridge drops messages and there's no way to tell it to be reliable
     this is fixed temporarily in ridebridge but needs an official fix
   - need to unsubscribe dropped connections from everything they subscribed to
     otherwise connecting multiple times means lots of copies of each message?
-- may need to have a way to rosmake a package
-- show types of topics?
-  - do topics even have a single type?
-  - if so, maybe only show types along edges?
-- how to kill image_view when you close the window? what's going on?
-- minimap for large programs
-
-DONE
 - get rid of temporary roslaunch files and run binaries directly?
   - would get less cluttered stdout and exit code
 - need better status information

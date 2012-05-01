@@ -129,6 +129,7 @@ var ride = {
 
         // Remove the slot if it exists
         if (slot) {
+          slot.targets.map(function(target) { slot.disconnect(target); });
           slots.splice(slots.indexOf(slot), 1);
           node.updateHTML();
           this.graph.updateBounds();

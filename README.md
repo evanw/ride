@@ -8,4 +8,5 @@ An IDE for [ROS](http://ros.org/) that runs in the web browser and edits the gra
 ## Notes
 
 * RIDE unfortunately can't use the official [rosbridge](http://www.ros.org/wiki/rosbridge) package because that one drops messages by design, and RIDE assumes the messages it sends won't be dropped. RIDE includes a modified rosbridge node that can be configured to not drop messages.
-* This is not secure! ROS is a complex system and there is a high probability of remote code execution. Do not attempt to make RIDE available over the Internet.
+* Disconnecting and reconnecting currently results in duplicate messages because rosbridge doesn't unregister subscribers on disconnection.
+* This is not secure! ROS is a complex system and there is a high probability of arbitrary remote code execution. Do not attempt to make RIDE available over the Internet.
