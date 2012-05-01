@@ -23,6 +23,7 @@
       .GraphBox .dropdown { position: absolute; right: 5px; top: 5px; font-size: 13px; }
       .GraphBox .dropdown > a { display: block; width: 18px; height: 18px; }
       .GraphBox .dropdown .caret { border-top-color: white; margin: 7px 0 0 5px; }
+      #minimap { position: absolute; right: 0; bottom: 0; z-index: 1; display: none; -webkit-box-shadow: 0 0 10px black; -moz-box-shadow: 0 0 10px black; box-shadow: 0 0 10px black; }
     </style>
   </head>
   <body>
@@ -109,6 +110,8 @@
         <a href="javascript:ui.setConnectionURL()" class="btn btn-primary">Change</a>
       </div>
     </div>
+
+    <canvas id="minimap"></canvas>
 
     <div id="sidebar" class="sidebar"></div>
     <script src="script.js"></script>

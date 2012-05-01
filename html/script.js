@@ -258,6 +258,9 @@ var dropdownHTML = '\
 ';
 
 var ui = {
+  minimap: document.getElementById('minimap').getContext('2d'),
+  minimapScale: 1,
+
   ownedNodeAdded: function(node) {
     // Create dropdown menu
     function item(name, callback) {
@@ -412,16 +415,113 @@ var ui = {
     });
     ride.graph.updateBounds();
     ride.graph.draw();
+  },
+
+  updateMinimap: function() {
+    // Private functions copied from GraphBox.js
+    function vec2(x, y) {
+      return { x: x, y: y };
+    }
+    function offsetOf(elem) {
+      var p = vec2(0, 0);
+      while (elem) {
+        p.x += elem.offsetLeft;
+        p.y += elem.offsetTop;
+        elem = elem.offsetParent;
+      }
+      return p;
+    }
+    function nodeRect(node) {
+      return {
+        x: node.element.offsetLeft + !!node.selected,
+        y: node.element.offsetTop + !!node.selected,
+        width: node.element.clientWidth,
+        height: node.element.clientHeight
+      };
+    }
+    function connectionSite(connection, graph, isOutput) {
+      var offset = offsetOf(connection.element);
+      var graphOffset = offsetOf(graph.element);
+      return vec2(
+        offset.x - graphOffset.x + !!connection.node.selected + connection.element.clientWidth * isOutput,
+        offset.y - graphOffset.y + !!connection.node.selected + connection.element.clientHeight / 2
+      );
+    }
+    function drawLink(c, ax, ay, bx, by) {
+      c.beginPath();
+      c.moveTo(ax, ay);
+      c.bezierCurveTo(ax + 100, ay, bx - 90, by, bx, by);
+      c.stroke();
+    }
+
+    // Read viewport information
+    var graph = $(ride.graph.element);
+    var graphWidth = graph.width();
+    var graphHeight = graph.height();
+    var canvas = ride.graph.canvas;
+    var c = this.minimap;
+
+    // Do we need a minimap?
+    if (canvas.width > graphWidth || canvas.height > graphHeight) {
+      // Compute minimap scale factor
+      var size = 200;
+      var dx = graph.scrollLeft();
+      var dy = graph.scrollTop();
+      var canvasRatio = canvas.width / canvas.height;
+      var graphRatio = graphWidth / graphHeight;
+      c.canvas.width = canvasRatio > 1 ? size : size * canvasRatio;
+      c.canvas.height = canvasRatio > 1 ? size / canvasRatio : size;
+      c.canvas.style.display = 'block';
+      this.minimapScale = c.canvas.width / canvas.width;
+
+      // Clear the canvas
+      c.fillStyle = '#DDD';
+      c.fillRect(0, 0, c.canvas.width, c.canvas.height);
+
+      // Map to graph coordinates
+      c.save();
+      c.scale(this.minimapScale, this.minimapScale);
+
+      // Draw viewport
+      c.fillStyle = '#BBB';
+      c.fillRect(dx, dy, graphWidth, graphHeight);
+
+      // Draw graph
+      c.fillStyle = c.strokeStyle = '#888';
+      c.lineWidth = 1 / this.minimapScale;
+      ride.graph.nodes.map(function(node) {
+        // Draw node
+        var rect = nodeRect(node);
+        c.fillRect(rect.x, rect.y, rect.width, rect.height);
+
+        // Draw links from inputs to outputs
+        for (var j = 0; j < node.inputs.length; j++) {
+          var input = node.inputs[j];
+          var to = connectionSite(input, ride.graph, false);
+          for (var k = 0; k < input.targets.length; k++) {
+            var from = connectionSite(input.targets[k], ride.graph, true);
+            drawLink(c, from.x, from.y, to.x, to.y);
+          }
+        }
+      });
+
+      c.restore();
+    } else {
+      c.canvas.style.display = 'none';
+    }
   }
 };
+
+// Hide the scrollbars by extra padding for the graph
+var scrollbarPadding = 20; // Big enough to contain a scrollbar with extra room
+ride.graph.paddingLeft = ride.graph.paddingTop = 20; // Restricts node dragging
+ride.graph.paddingRight = ride.graph.paddingBottom = 50 + scrollbarPadding;
 
 // Update the connection status
 ui.setConnected(false);
 
 // Insert the graph where this script tag is in the DOM
 document.body.appendChild(ride.graph.element);
-ride.graph.updateBounds();
-ride.graph.draw();
 
 // Compute which input has focus
 var inputWithFocus = null;
@@ -453,21 +553,58 @@ $(document).keydown(function(e) {
   }
 });
 
+// Redraw the minimap when the window is scrolled or the graph is redrawn
+var updateBounds = ride.graph.updateBounds;
+ride.graph.updateBounds = function() {
+  updateBounds.call(this);
+  ui.updateMinimap();
+};
+$(ride.graph.element).scroll(function() { ui.updateMinimap(); });
+
 // Resize the graph when the window resizes
 var navbarHeight = $('#navbar').height();
-function resizeGraph() {
+function resize() {
+  // Resize the graph
   $(ride.graph.element).css({
     position: 'absolute',
     left: 0,
     top: navbarHeight,
-    width: window.innerWidth,
-    height: window.innerHeight - navbarHeight
+    width: window.innerWidth + scrollbarPadding,
+    height: window.innerHeight - navbarHeight + scrollbarPadding
   });
   ride.graph.updateBounds();
   ride.graph.draw();
+  ui.updateMinimap();
 }
-$(window).resize(resizeGraph);
-resizeGraph();
+$(window).resize(resize);
+resize();
+
+// Scroll the window when the minimap is dragged
+(function() {
+  var dragging = false;
+  var element = ride.graph.element;
+  var scrollX, scrollY, oldMouse;
+  function mouse(e) {
+    var offset = $(ui.minimap.canvas).offset();
+    return { x: e.pageX - offset.left, y: e.pageY - offset.top };
+  }
+  $(ui.minimap.canvas).mousedown(function(e) {
+    scrollX = element.scrollLeft;
+    scrollY = element.scrollTop;
+    oldMouse = mouse(e);
+    dragging = true;
+    e.preventDefault();
+  });
+  $(document).mousemove(function(e) {
+    if (!dragging) return;
+    var newMouse = mouse(e);
+    element.scrollLeft = scrollX + (newMouse.x - oldMouse.x) / ui.minimapScale;
+    element.scrollTop = scrollY + (newMouse.y - oldMouse.y) / ui.minimapScale;
+  });
+  $(document).mouseup(function() {
+    dragging = false;
+  });
+})();
 
 ////////////////////////////////////////////////////////////////////////////////
 // Helper functions

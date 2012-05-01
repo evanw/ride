@@ -103,8 +103,6 @@ var GraphBox = (function() {
     c.restore();
   }
 
-  var padding = 20;
-
   //////////////////////////////////////////////////////////////////////////////
   // class SelectionTool
   //////////////////////////////////////////////////////////////////////////////
@@ -201,8 +199,8 @@ var GraphBox = (function() {
     onmousemove: function(e) {
       if (this.dragging) {
         var mouse = relativeMouse(e, this.graph), prev = this.prev;
-        var deltaX = Math.max(padding - this.min.x, mouse.x - this.start.x);
-        var deltaY = Math.max(padding - this.min.y, mouse.y - this.start.y);
+        var deltaX = Math.max(this.graph.paddingLeft - this.min.x, mouse.x - this.start.x);
+        var deltaY = Math.max(this.graph.paddingTop - this.min.y, mouse.y - this.start.y);
         this.graph.selection().map(function(node) {
           var rect = nodeRect(node);
           node.moveTo(deltaX + rect.x - prev.x, deltaY + rect.y - prev.y);
@@ -302,6 +300,10 @@ var GraphBox = (function() {
     this.selectionTool = new SelectionTool(this);
     this.draggingTool = new DraggingTool(this);
     this.nodeLinkTool = new NodeLinkTool(this);
+    this.paddingLeft = 20;
+    this.paddingTop = 20;
+    this.paddingRight = 20;
+    this.paddingBottom = 20;
     this.onconnection = null;
     this.ondisconnection = null;
 
@@ -360,8 +362,8 @@ var GraphBox = (function() {
       var height = this.element.clientHeight;
       for (var i = 0; i < this.nodes.length; i++) {
         var rect = nodeRect(this.nodes[i]);
-        width = Math.max(width, rect.x + rect.width + padding);
-        height = Math.max(height, rect.y + rect.height + padding);
+        width = Math.max(width, rect.x + rect.width + this.paddingRight);
+        height = Math.max(height, rect.y + rect.height + this.paddingBottom);
       }
 
       // Browsers don't optimize resizing to the same size
