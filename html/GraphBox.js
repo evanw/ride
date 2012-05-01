@@ -1,6 +1,6 @@
-"use strict";
-
 var GraphBox = (function() {
+  "use strict";
+
   function elem(tagName, parentNode, className) {
     var elem = document.createElement(tagName);
     if (parentNode) parentNode.appendChild(elem);

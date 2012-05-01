@@ -63,17 +63,11 @@ var ride = {
         }
         this.graph.addNode(node);
         if (data.is_owned) ui.ownedNodeAdded(node);
-        this.graph.updateBounds();
-        this.graph.draw();
         break;
 
       case 'destroy_node':
         var node = this.graph.node(data.name);
-        if (node) {
-          this.graph.removeNode(node);
-          this.graph.updateBounds();
-          this.graph.draw();
-        }
+        if (node) this.graph.removeNode(node);
         break;
 
       case 'create_slot':
@@ -100,7 +94,6 @@ var ride = {
           }
           slots.push(slot);
           node.updateHTML();
-          this.graph.updateBounds();
         }
 
         // Connect the slots to all other slots of the opposite type with the same name
@@ -111,7 +104,6 @@ var ride = {
             }
           });
         });
-        this.graph.draw();
         break;
 
       case 'destroy_slot':
@@ -132,8 +124,6 @@ var ride = {
           slot.targets.map(function(target) { slot.disconnect(target); });
           slots.splice(slots.indexOf(slot), 1);
           node.updateHTML();
-          this.graph.updateBounds();
-          this.graph.draw();
         }
         break;
 
@@ -144,7 +134,6 @@ var ride = {
             input.connect(output);
           });
         });
-        this.graph.draw();
         break;
 
       case 'destroy_link':
@@ -154,7 +143,6 @@ var ride = {
             input.disconnect(output);
           });
         });
-        this.graph.draw();
         break;
 
       case 'update_owned_node':
@@ -165,8 +153,6 @@ var ride = {
         node.updateHTML();
         $(node.startElement).toggle(!data.is_running);
         $(node.stopElement).toggle(data.is_running);
-        this.graph.updateBounds();
-        this.graph.draw();
         if (!data.is_running && node.relaunchWhenStopped) {
           node.relaunchWhenStopped = false;
           ROS.call('/ride/node/start', { name: data.name });
@@ -239,6 +225,8 @@ ROS.onopen = function() {
   ROS.subscribe('/ride/updates', function(data) {
     if (loaded) {
       ride.update(JSON.parse(data.data));
+      ride.graph.updateBounds();
+      ride.graph.draw();
     }
   });
   ROS.call('/ride/load', {}, function(data) {
@@ -246,6 +234,7 @@ ROS.onopen = function() {
     data.updates.map(function(data) {
       ride.update(data);
     });
+    ui.layoutGraph();
     ui.setPackages(data.packages);
     loaded = true;
   });
@@ -385,13 +374,44 @@ var ui = {
 
   showLaunchFile: function(id) {
     ROS.call('/ride/launch/output', { id: id }, function(data) {
-        $('#terminal_output_data').html(escape_codes_to_html(data.output));
-        $('#terminal_output').modal('show');
+      $('#terminal_output_data').html(escape_codes_to_html(data.output));
+      $('#terminal_output').modal('show');
     });
   },
 
   killLaunchFile: function(id) {
     ROS.call('/ride/launch/destroy', { id: id });
+  },
+
+  layoutGraph: function() {
+    // Create a temporary graph to perform layout on
+    var layoutGraph = new GraphLayout.Graph();
+    ride.graph.nodes.map(function(node) {
+      var element = $(node.element);
+      var width = element.width();
+      var height = element.height();
+      var layoutNode = new GraphLayout.Node(node.name, width, height);
+      layoutGraph.addNode(layoutNode);
+    });
+
+    // Copy over the connections
+    ride.graph.nodes.map(function(node) {
+      var layoutNode = layoutGraph.node(node.name);
+      node.outputs.map(function(output) {
+        output.targets.map(function(target) {
+          layoutNode.connectTo(layoutGraph.node(target.node.name));
+        });
+      });
+    });
+
+    // Perform layout and read back the results
+    layoutGraph.layout(50);
+    ride.graph.nodes.map(function(node) {
+      var layoutNode = layoutGraph.node(node.name);
+      node.moveTo(layoutNode.x, layoutNode.y);
+    });
+    ride.graph.updateBounds();
+    ride.graph.draw();
   }
 };
 

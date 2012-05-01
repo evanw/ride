@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="bootstrap/css/bootstrap.min.css">
     <script src="ROS.js"></script>
     <script src="GraphBox.js"></script>
+    <script src="GraphLayout.js"></script>
     <script src="jquery.min.js"></script>
     <script src="bootstrap/js/bootstrap.min.js"></script>
     <style>
@@ -32,8 +33,9 @@
           <form class="navbar-search pull-left" onsubmit="return false">
             <input id="insert_node" type="text" class="search-query" placeholder="Insert node" autocomplete="off">
           </form>
-          <ul class="nav pull-left" id="launch_files">
-            <li class="dropdown">
+          <ul class="nav pull-left">
+            <li><a href="javascript:ui.layoutGraph()">Auto Layout</a></li>
+            <li class="dropdown" id="launch_files">
               <a href="javascript:void 0" class="dropdown-toggle" data-toggle="dropdown" id="launch_files_count"></a>
               <ul class="dropdown-menu" id="launch_files_menu"></ul>
             </li>
