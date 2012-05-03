@@ -106,7 +106,10 @@ var GraphBox = (function() {
     c.fill();
 
     // Everything below here is drawing curved text
-    if (!linkText) return;
+    if (!linkText) {
+      c.restore();
+      return;
+    }
 
     // Subdivide the cubic bezier into line segments
     var points = [];
