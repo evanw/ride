@@ -111,6 +111,9 @@ var GraphBox = (function() {
       return;
     }
 
+    // Pick which side of the line to draw the text on
+    var side = (ax + 95 < bx);
+
     // Subdivide the cubic bezier into line segments
     var points = [];
     var lengths = [];
@@ -136,7 +139,7 @@ var GraphBox = (function() {
       var ny = ay * (c0 + c1) + by * (c2 + c3);
 
       // Offset the point to move the text away from the line
-      var scale = 15 / Math.sqrt(nx * nx + ny * ny);
+      var scale = (side ? 15 : -15) / Math.sqrt(nx * nx + ny * ny);
       x += ny * scale;
       y -= nx * scale;
 
@@ -151,6 +154,10 @@ var GraphBox = (function() {
         totalLength += length;
       }
       var prev = next;
+    }
+    if (!side) {
+      lengths.reverse();
+      points.reverse();
     }
 
     // Measure character widths

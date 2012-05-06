@@ -1,11 +1,4 @@
-TODO
-- minimap for large programs
-- automatic graph layout
-
 MAYBE
-- show types of topics?
-  - do topics even have a single type?
-  - if so, maybe only show types along edges?
 - have a way to rosmake a package
 - how to kill image_view when you close the window? what's going on?
 
@@ -34,3 +27,8 @@ DONE
     with -1 it only drops a few messages, still has queue_size of 10
 - need real-time editing of connections
 - need to hide temporary forwarding nodes
+- minimap for large programs
+- automatic graph layout
+- show types of topics?
+  - do topics even have a single type?
+  - if so, maybe only show types along edges?
