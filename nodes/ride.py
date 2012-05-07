@@ -21,7 +21,7 @@ def run(*args):
     '''run the provided command and return its stdout'''
     args = sum([(arg if type(arg) == list else [arg]) for arg in args], [])
     print ' '.join(args)
-    return subprocess.check_output(args).strip()
+    return subprocess.Popen(args, stdout=subprocess.PIPE).communicate()[0].strip()
 
 def split_words(text):
     '''return a list of lines where each line is a list of words'''
