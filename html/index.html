@@ -11,7 +11,7 @@
     <script src="bootstrap/js/bootstrap.min.js"></script>
     <style>
       body { overflow: hidden; cursor: default; }
-      .modal { display: none; top: 200px; margin-top: 0; width: 530px; }
+      .modal { display: none; top: 20px; margin-top: 0; width: 530px; }
       #launch_settings textarea, #launch_settings input { width: 490px; }
       #launch_files { display: none; }
       #launch_files .nav-header { color: black; text-transform: none; white-space: nowrap; font-size: 13px; margin: 0; }
@@ -78,7 +78,7 @@
           <textarea id="launch_settings_rosparams" placeholder="param1 = 0                                                                                                                                /namespace/param2 = { a: 1, b: 2 }"></textarea>
           <p><b>Environment variables</b> (key = value, one per line)</p>
           <textarea id="launch_settings_env_vars" placeholder="VAR1 = 0                                                                                                                                VAR2 = text with spaces"></textarea>
-          <p><b>Initial working directory:</p>
+          <p><b>Initial working directory:</b></p>
           <input id="launch_settings_starting_cwd" type="text">
         </form>
       </div>
