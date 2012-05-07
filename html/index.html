@@ -72,12 +72,14 @@
         <form onsubmit="javascript:ui.setLaunchSettings(true);return false">
           <input id="launch_settings_node_name" type="hidden">
           <p><b>Command-line arguments</b></p>
-          <input id="launch_settings_cmd_line_args" placeholder='--flag --key="value with spaces"'>
+          <input id="launch_settings_cmd_line_args" placeholder='--flag --key="value with spaces"' type="text">
           <!-- HACK: Placeholders can't have newlines, but browsers will wrap text after a lot of spaces -->
           <p><b>ROS params</b> (key = value, one per line, JSON syntax)</p>
           <textarea id="launch_settings_rosparams" placeholder="param1 = 0                                                                                                                                /namespace/param2 = { a: 1, b: 2 }"></textarea>
           <p><b>Environment variables</b> (key = value, one per line)</p>
           <textarea id="launch_settings_env_vars" placeholder="VAR1 = 0                                                                                                                                VAR2 = text with spaces"></textarea>
+          <p><b>Initial working directory:</p>
+          <input id="launch_settings_starting_cwd" type="text">
         </form>
       </div>
       <div class="modal-footer">

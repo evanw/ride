@@ -100,6 +100,7 @@ class OwnedNode:
         self.cmd_line_args = ''
         self.rosparams = ''
         self.env_vars = ''
+        self.starting_cwd = os.path.dirname(path)
         self.ride.updates.create_node(self)
         self.ride.names_to_avoid.add(name)
         self.start()
@@ -217,7 +218,7 @@ class OwnedNode:
         # Start the node again
         try:
             # Start the node as a child process
-            self.process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env_vars)
+            self.process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env_vars, cwd=self.starting_cwd)
             self.status = 'Starting...'
 
             # We won't be needing stdin, but don't let it block us
@@ -555,7 +556,7 @@ class RIDE:
         '''Implements the /ride/node/settings/get service'''
         if request.name in self.owned_nodes:
             node = self.owned_nodes[request.name]
-            return ride.srv.NodeSettingsGetResponse(node.cmd_line_args, node.rosparams, node.env_vars, True)
+            return ride.srv.NodeSettingsGetResponse(node.cmd_line_args, node.rosparams, node.env_vars, node.starting_cwd, True)
         return ride.srv.NodeSettingsGetResponse('', '', '', False)
 
     def node_settings_set_service(self, request):
@@ -565,6 +566,7 @@ class RIDE:
             node.cmd_line_args = request.cmd_line_args
             node.rosparams = request.rosparams
             node.env_vars = request.env_vars
+            node.starting_cwd = request.starting_cwd
             return ride.srv.NodeSettingsSetResponse(True)
         return ride.srv.NodeSettingsSetResponse(False)
 

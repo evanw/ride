@@ -309,6 +309,7 @@ var ui = {
         $('#launch_settings_cmd_line_args').val(data.cmd_line_args);
         $('#launch_settings_rosparams').val(data.rosparams);
         $('#launch_settings_env_vars').val(data.env_vars);
+        $('#launch_settings_starting_cwd').val(data.starting_cwd);
         $('#launch_settings').modal('show');
       });
     });
@@ -340,7 +341,8 @@ var ui = {
       name: node_name,
       cmd_line_args: $('#launch_settings_cmd_line_args').val(),
       rosparams: $('#launch_settings_rosparams').val(),
-      env_vars: $('#launch_settings_env_vars').val()
+      env_vars: $('#launch_settings_env_vars').val(),
+      starting_cwd: $('#launch_settings_starting_cwd').val()
     }, function() {
       var node = ride.graph.node(node_name);
       if (!node) return;
