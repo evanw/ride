@@ -154,7 +154,7 @@ class OwnedNode:
         map = {}
         published, subscribed = self.ride.db.topics.get(self.path, (set(), set()))
         for topic in published | subscribed:
-            map[topic] = self.ride.unique_topic_name()
+            map[topic] = self.ride.unique_topic_name(self.name, topic)
         self.remappings = dict(zip(map.values(), map.keys()))
 
         # Find prefixes and add those remappings too
@@ -433,15 +433,17 @@ class RIDE:
         rospy.Service('/ride/link/create', ride.srv.LinkCreate, self.link_create_service)
         rospy.Service('/ride/link/destroy', ride.srv.LinkDestroy, self.link_destroy_service)
 
-    def unique_topic_name(self):
+    def unique_topic_name(self, node_name, topic_name):
         # This needs to be global because things don't work sometimes otherwise.
         # For example, if the generated names are in the "/ride_topics/"
         # namespace then ImageTransport puts "/camera_info" in
         # "/ride_topics/camera_info" and the remapping fails.
         self.unique_name_count += 1
-        return '/ride_unique_topic_%d' % self.unique_name_count
+        like = (node_name + topic_name)[1:]
+        like = re.sub('[^A-Za-z0-9]', '_', like)
+        return '/%s_%d' % (like, self.unique_name_count)
 
-    def unique_node_name(self, prefix):
+    def unique_node_name(self, like):
         # BUGFIX: We can't reuse node names, so make them all different. Assume
         # no node will use any node name prefixed with "ride". If we don't prepend
         # "ride" then we run the risk of colliding with another node name. We could
@@ -462,8 +464,8 @@ class RIDE:
         # "rosnode cleanup" from the terminal works, yet even if I run
         # rosnode.rosnode_cleanup() from ride.py it doesn't work. WTF.
         self.unique_name_count += 1
-        prefix = re.sub('[^A-Za-z0-9]', '_', prefix)
-        return '/ride_%s_%d' % (prefix, self.unique_name_count)
+        like = re.sub('[^A-Za-z0-9]', '_', like)
+        return '/ride_%s_%d' % (like, self.unique_name_count)
 
     def load_service(self, request):
         '''Implements the /ride/load service'''

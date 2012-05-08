@@ -1,3 +1,7 @@
+TODO
+- better topic names
+- autoconnect things with the same topic name
+
 MAYBE
 - have a way to rosmake a package
 - how to kill image_view when you close the window? what's going on?
